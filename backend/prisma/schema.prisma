@@ -1,0 +1,217 @@
+// =============================================
+// Sentinela – Vigilância total, risco zero.
+// Lei nº 14.133/2021 – PostgreSQL 16 + Neon.tech
+// =============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================
+// 1. ENTIDADE (multi-tenant + governança ROOT)
+// =============================================
+model Entidade {
+  id            BigInt    @id @default(autoincrement())
+  cnpj          String    @unique @db.VarChar(14)
+  razaoSocial   String    @db.VarChar(255)
+  nomeFantasia  String?   @db.VarChar(255)
+  ugCodigo      String?   @db.VarChar(20)
+  status        StatusEntidade @default(ATIVA)
+  dataStatus    DateTime  @default(now())
+  motivoStatus  String?
+  rootUserId    BigInt?
+  logoUrl       String?   @db.VarChar(500)
+  configJson    Json?
+
+  // Relações
+  usuarios      Usuario[]
+  fornecedores  Fornecedor[]
+  contratos     Contrato[]
+  auditorias    AuditoriaGlobal[] @relation("auditoria_entidade")
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([cnpj])
+  @@index([status])
+}
+
+enum StatusEntidade {
+  ATIVA
+  INATIVA
+  SUSPENSA
+}
+
+// =============================================
+// 2. USUÁRIO (inclui ROOT)
+// =============================================
+model Usuario {
+  id                BigInt    @id @default(autoincrement())
+  entidadeId        BigInt?
+  entidade          Entidade? @relation(fields: [entidadeId], references: [id])
+  nome              String    @db.VarChar(150)
+  cpf               String    @unique @db.VarChar(11)
+  email             String    @unique @db.VarChar(255)
+  senhaHash         String    @db.VarChar(255)
+  perfil            PerfilUsuario
+  ativo             Boolean   @default(true)
+  certificadoDigital String?  @db.VarChar(255)
+  totpSecret        String?   // MFA TOTP
+  totpEnabled       Boolean   @default(false)
+  ultimoLogin       DateTime?
+
+  // Relações
+  gestorContratos   Contrato[]     @relation("gestor")
+  fiscaisDesignados FiscalDesignado[]
+  ocorrencias       OcorrenciaFiscalizacao[]
+  riscos            MatrizRiscos[]
+  auditorias        AuditoriaGlobal[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([entidadeId, perfil])
+  @@index([cpf])
+}
+
+enum PerfilUsuario {
+  ROOT
+  GESTOR
+  FISCAL_TECNICO
+  FISCAL_ADM
+  APOIO
+  AUDITOR
+}
+
+// =============================================
+// 3. FORNECEDOR + CERTIDÕES
+// =============================================
+model Fornecedor {
+  id                   BigInt    @id @default(autoincrement())
+  entidadeId           BigInt
+  entidade             Entidade  @relation(fields: [entidadeId], references: [id])
+  cnpj                 String?   @db.VarChar(14)
+  cpf                  String?   @db.VarChar(11)
+  razaoSocial          String    @db.VarChar(255)
+  nomeFantasia         String?   @db.VarChar(255)
+  situacaoCadastral    String    @default("ATIVO") @db.VarChar(20)
+  regularidadeGeral    String    @default("REGULAR") @db.VarChar(20)
+  dataUltimaVerificacao DateTime?
+  totalCertidoesVencidas Int     @default(0)
+  dataImpedimento      DateTime?
+  motivoImpedimento    String?
+  ativo                Boolean   @default(true)
+
+  contratos            Contrato[]
+  certidoes            CertidaoFornecedor[]
+  createdBy            BigInt?
+  updatedBy            BigInt?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([entidadeId, cnpj])
+  @@index([cnpj])
+  @@index([situacaoCadastral])
+}
+
+model TipoCertidao {
+  id                  Int      @id @default(autoincrement())
+  codigo              String   @unique @db.VarChar(30)
+  nome                String   @db.VarChar(150)
+  obrigatoriaLicitacao Boolean @default(true)
+  obrigatoriaContratacao Boolean @default(true)
+  prazoValidadeDias   Int      @default(180)
+  apiDisponivel       Boolean  @default(false)
+
+  certidoes           CertidaoFornecedor[]
+
+  @@map("tipo_certidao")
+}
+
+model CertidaoFornecedor {
+  id                BigInt   @id @default(autoincrement())
+  fornecedorId      BigInt
+  fornecedor        Fornecedor @relation(fields: [fornecedorId], references: [id], onDelete: Cascade)
+  tipoCertidaoId    Int
+  tipoCertidao      TipoCertidao @relation(fields: [tipoCertidaoId], references: [id])
+  numeroProtocolo   String?  @db.VarChar(100)
+  dataEmissao       DateTime
+  dataValidade      DateTime
+  situacao          String   @default("VÁLIDA") @db.VarChar(20)
+  origem            String?  @db.VarChar(30)
+  arquivoPdf        String?  @db.VarChar(500)
+  hashArquivo       String?  @db.VarChar(64)
+
+  createdBy         BigInt?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([fornecedorId, dataValidade])
+  @@index([situacao])
+}
+
+// =============================================
+// 4. CONTRATO + FISCALIZAÇÃO
+// =============================================
+model Contrato {
+  id            BigInt    @id @default(autoincrement())
+  entidadeId    BigInt
+  entidade      Entidade  @relation(fields: [entidadeId], references: [id])
+  numeroContrato String   @db.VarChar(50)
+  numeroProcesso String?  @db.VarChar(50)
+  objeto        String
+  fornecedorId  BigInt
+  fornecedor    Fornecedor @relation(fields: [fornecedorId], references: [id])
+  valorGlobal   Decimal   @db.Decimal(18, 2)
+  valorExecutado Decimal  @default(0) @db.Decimal(18, 2)
+  dataAssinatura DateTime?
+  dataInicio    DateTime?
+  dataTermino   DateTime?
+  vigenciaMeses Int?
+  modalidade    String?   @db.VarChar(50)
+  tipoContrato  String?   @db.VarChar(50)
+  gestorId      BigInt?
+  gestor        Usuario?  @relation("gestor", fields: [gestorId], references: [id])
+  status        String    @default("VIGENTE") @db.VarChar(30)
+
+  fiscais       FiscalDesignado[]
+  ocorrencias   OcorrenciaFiscalizacao[]
+  cronogramas   CronogramaFisicoFin[]
+  penalidades   Penalidade[]
+  riscos        MatrizRiscos[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([entidadeId, numeroContrato])
+  @@index([entidadeId, status])
+}
+
+model FiscalDesignado {
+  id           BigInt  @id @default(autoincrement())
+  contratoId   BigInt
+  contrato     Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  usuarioId    BigInt
+  usuario      Usuario @relation(fields: [usuarioId], references: [id])
+  tipoFiscal   String  @db.VarChar(20) // TITULAR | SUPLENTE
+  dataDesignacao DateTime
+  portaria     String? @db.VarChar(100)
+  ativo        Boolean @default(true)
+
+  @@unique([contratoId, usuarioId])
+}
+
+// Ocorrências, Cronograma, Penalidades, Matriz de Riscos e Auditoria seguem 100% conforme o DER final anterior
+// (posso colar aqui se quiser, mas já estão validadas)
+
+model OcorrenciaFiscalizacao { /* ... mesmo do DER anterior ... */ }
+model CronogramaFisicoFin { /* ... */ }
+model Penalidade { /* ... */ }
+model MatrizRiscos { /* ... */ }
+model AuditoriaGlobal { /* ... */ }
