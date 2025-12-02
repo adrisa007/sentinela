@@ -1,0 +1,17 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/dashboard",
+      "permanent": false
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Projeto", "value": "Sentinela – Vigilância total, risco zero." }
+      ]
+    }
+  ]
+}

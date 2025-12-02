@@ -1,15 +1,20 @@
-# sentinela
-Sistema do Fiscal e Gestor de Contratos - Lei 14.133/21
+# Sentinela – Vigilância total, risco zero.
 
-1. Identidade Verbal Oficial
+Sistema completo de Gestão e Fiscalização de Contratos – 100% conforme a Lei nº 14.133/2021
 
-Nome: Sentinela
-Slogan principal: Vigilância total, risco zero.
-Slogan secundário (para materiais internos): O olhar que a Lei 14.133 exige.
+### Links oficiais (em produção agora)
 
-2. Identidade Visual (já pronta para uso)
+- Aplicação web → https://sentinela-opal-seven.vercel.app
+- API REST → https://opal.vercel.app
+- Documentação Swagger → https://opal.vercel.app/docs
+- Repositório → https://github.com/adrisa007/sentinela
 
-Cores institucionais:
-Azul Sentinela (#003087) | Ciano Neon (#00E8FF) | Cinza Chumbo (#1C2526) | Branco
-Logo: Escudo estilizado com olho digital + letra “S” integrada (já tenho 3 versões em PNG e vetor)
-Tipografia: Montserrat (cabeçalhos) + Roboto (textos)
+### Acesso rápido (piloto)
+
+Usuário demo (fiscal):  
+Login: `demo@sentinela.app`  
+Senha: `Sentinela2025!`
+
+Usuário ROOT (governança):  
+Login: `root@sentinela.app`  
+Senha + MFA: será enviado por WhatsApp
