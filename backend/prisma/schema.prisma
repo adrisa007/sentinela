@@ -77,6 +77,11 @@ model Usuario {
 
   @@index([entidadeId, perfil])
   @@index([cpf])
+  
+  // ... outros campos 3. Campo obrigatório no banco (já está no schema.prisma)
+  totpSecret     String?   // criptografado com bcrypt
+  totpTempSecret String?   // temporário (não criptografado)
+  totpEnabled    Boolean   @default(false)
 }
 
 enum PerfilUsuario {
