@@ -109,3 +109,6 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+// backend/src/main.ts (adicione esta linha)
+app.useGlobalInterceptors(new AuditInterceptor(app.get(PrismaService)));

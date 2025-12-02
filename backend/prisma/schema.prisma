@@ -278,17 +278,20 @@ model MatrizRiscos {
 }
 
 model AuditoriaGlobal {
-  id           BigInt   @id @default(autoincrement())
-  entidadeId   BigInt
-  entidade     Entidade @relation("auditoria_entidade", fields: [entidadeId], references: [id], onDelete: Cascade)
-  usuarioId    BigInt
-  usuario      Usuario  @relation(fields: [usuarioId], references: [id])
-  tipoAuditoria String  @db.VarChar(100)
-  descricao    String
-  dataAuditoria DateTime
-  statusAuditoria String @default("PLANEJADA") @db.VarChar(20)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  @@index([entidadeId, statusAuditoria])
+  id            BigInt    @id @default(autoincrement())
+  entidadeId    BigInt?
+  entidade      Entidade? @relation(fields: [entidadeId], references: [id])
+  usuarioId     BigInt?
+  usuario       Usuario?  @relation(fields: [usuarioId], references: [id])
+  acao          String    @db.VarChar(100)  // CREATE | UPDATE | DELETE | LOGIN
+  tabelaAfetada String    @db.VarChar(100)
+  registroId    BigInt?
+  dadosAntes    Json?
+  dadosDepois   Json?
+  ipAddress     String    @db.VarChar(45)
+  userAgent     String?
+  timestamp     DateTime  @default(now())
+
+  @@index([entidadeId, timestamp])
+  @@index([usuarioId])
 }
