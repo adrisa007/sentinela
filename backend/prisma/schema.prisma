@@ -207,11 +207,83 @@ model FiscalDesignado {
   @@unique([contratoId, usuarioId])
 }
 
-// Ocorrências, Cronograma, Penalidades, Matriz de Riscos e Auditoria seguem 100% conforme o DER final anterior
-// (posso colar aqui se quiser, mas já estão validadas)
+// Ocorrências, Cronograma, Penalidades, Matriz de Riscos e Auditoria
+model OcorrenciaFiscalizacao {
+  id           BigInt   @id @default(autoincrement())
+  contratoId   BigInt
+  contrato     Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  usuarioId    BigInt
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id])
+  tipoOcorrencia String @db.VarChar(100)
+  descricao    String
+  dataOcorrencia DateTime
+  statusOcorrencia String @default("ABERTA") @db.VarChar(20)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([contratoId, statusOcorrencia])
+}
 
-model OcorrenciaFiscalizacao { /* ... mesmo do DER anterior ... */ }
-model CronogramaFisicoFin { /* ... */ }
-model Penalidade { /* ... */ }
-model MatrizRiscos { /* ... */ }
-model AuditoriaGlobal { /* ... */ }
+model CronogramaFisicoFin {
+  id           BigInt   @id @default(autoincrement())
+  contratoId   BigInt
+  contrato     Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  etapa        String   @db.VarChar(255)
+  dataInicio   DateTime
+  dataFim      DateTime
+  percentualPrevisto Decimal @db.Decimal(5, 2)
+  percentualRealizado Decimal @default(0) @db.Decimal(5, 2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([contratoId])
+}
+
+model Penalidade {
+  id           BigInt   @id @default(autoincrement())
+  contratoId   BigInt
+  contrato     Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  tipoPenalidade String @db.VarChar(100)
+  descricao    String
+  dataPenalidade DateTime
+  valorPenalidade Decimal @db.Decimal(18, 2)
+  statusPenalidade String @default("ATIVA") @db.VarChar(20)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([contratoId, statusPenalidade])
+}
+
+model MatrizRiscos {
+  id           BigInt   @id @default(autoincrement())
+  contratoId   BigInt
+  contrato     Contrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  usuarioId    BigInt
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id])
+  descricaoRisco String
+  probabilidade String @db.VarChar(20)
+  impacto      String @db.VarChar(20)
+  nivelRisco   String @db.VarChar(20)
+  planoAcao    String?
+  dataRisco    DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([contratoId, nivelRisco])
+}
+
+model AuditoriaGlobal {
+  id           BigInt   @id @default(autoincrement())
+  entidadeId   BigInt
+  entidade     Entidade @relation("auditoria_entidade", fields: [entidadeId], references: [id], onDelete: Cascade)
+  usuarioId    BigInt
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id])
+  tipoAuditoria String  @db.VarChar(100)
+  descricao    String
+  dataAuditoria DateTime
+  statusAuditoria String @default("PLANEJADA") @db.VarChar(20)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([entidadeId, statusAuditoria])
+}
