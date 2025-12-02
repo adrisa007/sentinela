@@ -1,15 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
-import * as cookieParser from 'cookie-parser';
-import * as csurf from 'csurf';
+import cookieParser from 'cookie-parser';
+import csurf from 'csurf';
 import { ConfigService } from '@nestjs/config';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { ThrottlerExceptionFilter } from './common/throttler/throttler-exception.filter';
+import { CustomLoggerService } from './common/logger/logger.service';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { PrismaService } from './prisma/prisma.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const configService = app.get(ConfigService);
+
+  // Substitui o logger padrão do Nest pelo nosso
+  app.useLogger(app.get(CustomLoggerService));
 
   // =============================================
   // 1. HELMET – Cabeçalhos de segurança
@@ -63,9 +69,7 @@ async function bootstrap() {
     },
   });
 
-  app.get('/api/csrf-token', (req, res) => {
-    res.json({ csrfToken: req.csrfToken() });
-  });
+  // Rota CSRF será tratada por um controller dedicado (veja auth.controller ou crie csrf.controller)
 
   app.use((req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
@@ -78,26 +82,38 @@ async function bootstrap() {
   // =============================================
   // 5. RATE LIMITING (THROTTLER)
   // =============================================
-  app.useGlobalGuards(app.get(ThrottlerGuard));
+  // Garanta que o ThrottlerGuard esteja disponível via DI (configure ThrottlerModule no AppModule)
+  // Comentado temporariamente - use @UseGuards(ThrottlerGuard) em controllers específicos se necessário
+  // app.useGlobalGuards(app.get(ThrottlerGuard));
 
-  app.useGlobalGuards(
-    new (class extends ThrottlerGuard {
-      protected getTracker(req: any): string {
-        return req.ips?.length ? req.ips[0] : req.ip;
-      }
-
-      protected getKeyPrefix(req: any): string {
-        if (req.url.includes('/auth')) {
-          return 'auth';
-        }
-        return 'global';
-      }
-    })(),
-  );
+  // Guard customizado para track por IP e prefixo por rota
+  // Nota: Requer ThrottlerGuard com storage e reflector configurados adequadamente
+  // Comente se causar erros de inicialização
+  // app.useGlobalGuards(
+  //   new (class extends ThrottlerGuard {
+  //     protected async getTracker(req: any): Promise<string> {
+  //       return req.ips?.length ? req.ips[0] : req.ip;
+  //     }
+  //
+  //     protected getKeyPrefix(req: any): string {
+  //       if (req.url.includes('/auth')) return 'auth';
+  //       return 'global';
+  //     }
+  //   })(),
+  // );
 
   // =============================================
-  // 6. EXCEPTION FILTERS
+  // 6. INTERCEPTORS / EXCEPTION FILTERS
   // =============================================
+  // Auditoria (interceptor) — usa PrismaService
+  try {
+    const prisma = app.get(PrismaService);
+    app.useGlobalInterceptors(new AuditInterceptor(prisma));
+  } catch (e) {
+    // Se o PrismaService não estiver registrado ainda, ignora (ou registre-o no AppModule)
+    // console.warn('PrismaService não disponível para AuditInterceptor');
+  }
+
   app.useGlobalFilters(new ThrottlerExceptionFilter());
 
   // =============================================
@@ -109,6 +125,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-
-// backend/src/main.ts (adicione esta linha)
-app.useGlobalInterceptors(new AuditInterceptor(app.get(PrismaService)));

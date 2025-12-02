@@ -1,7 +1,29 @@
-// auth.controller.ts (trecho MFA)
-@Post('totp/setup')
-@UseGuards(JwtAuthGuard)
-async setupTotp(@Req() req: RequestWithUser) {
+import {
+  Controller,
+  Post,
+  UseGuards,
+  Req,
+  Body,
+  BadRequestException,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Request } from 'express';
+import * as speakeasy from 'speakeasy';
+import * as qrcode from 'qrcode';
+import * as bcrypt from 'bcrypt';
+import { PrismaService } from '../../prisma/prisma.service';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+type RequestWithUser = Request & { user?: any };
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Post('totp/setup')
+  @UseGuards(JwtAuthGuard)
+  async setupTotp(@Req() req: RequestWithUser) {
   const user = req.user;
 
   // ROOT e GESTOR = obrigatório
@@ -34,11 +56,11 @@ async setupTotp(@Req() req: RequestWithUser) {
     secret: secret.base32,
     message: 'Escaneie com Google Authenticator e confirme o código',
   };
-}
+  }
 
-@Post('totp/verify')
-@UseGuards(JwtAuthGuard)
-async verifyTotp(@Req() req: RequestWithUser, @Body() body: { token: string }) {
+  @Post('totp/verify')
+  @UseGuards(JwtAuthGuard)
+  async verifyTotp(@Req() req: RequestWithUser, @Body() body: { token: string }) {
   const user = await this.prisma.usuario.findUnique({
     where: { id: req.user.id },
     select: { totpTempSecret: true, perfil: true },
@@ -66,4 +88,5 @@ async verifyTotp(@Req() req: RequestWithUser, @Body() body: { token: string }) {
   });
 
   return { message: 'MFA ativado com sucesso!' };
+  }
 }

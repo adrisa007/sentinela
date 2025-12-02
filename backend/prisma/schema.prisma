@@ -61,7 +61,8 @@ model Usuario {
   perfil            PerfilUsuario
   ativo             Boolean   @default(true)
   certificadoDigital String?  @db.VarChar(255)
-  totpSecret        String?   // MFA TOTP
+  totpSecret        String?   // MFA TOTP (criptografado com bcrypt)
+  totpTempSecret    String?   // temporário (não criptografado)
   totpEnabled       Boolean   @default(false)
   ultimoLogin       DateTime?
 
@@ -77,11 +78,6 @@ model Usuario {
 
   @@index([entidadeId, perfil])
   @@index([cpf])
-  
-  // ... outros campos 3. Campo obrigatório no banco (já está no schema.prisma)
-  totpSecret     String?   // criptografado com bcrypt
-  totpTempSecret String?   // temporário (não criptografado)
-  totpEnabled    Boolean   @default(false)
 }
 
 enum PerfilUsuario {
@@ -280,7 +276,7 @@ model MatrizRiscos {
 model AuditoriaGlobal {
   id            BigInt    @id @default(autoincrement())
   entidadeId    BigInt?
-  entidade      Entidade? @relation(fields: [entidadeId], references: [id])
+  entidade      Entidade? @relation("auditoria_entidade", fields: [entidadeId], references: [id])
   usuarioId     BigInt?
   usuario       Usuario?  @relation(fields: [usuarioId], references: [id])
   acao          String    @db.VarChar(100)  // CREATE | UPDATE | DELETE | LOGIN
