@@ -1,0 +1,9 @@
+{
+	"name": "sentinela",
+	"private": true,
+	"version": "0.0.0",
+	"dependencies": {
+		"@nestjs/config": "^3.2.0",
+		"joi": "^17.13.0"
+	}
+}
