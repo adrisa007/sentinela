@@ -45,3 +45,29 @@ Logs estruturados (Winston)
 ✅ Art. 117 - Fiscalização de contratos
 ✅ Art. 137 - Penalidades
 ✅ Art. 174 - Auditoria e transparência
+
+# 🛡️ Sentinela
+
+![Auditoria 100% automática](https://img.shields.io/badge/Auditoria-100%25%20Autom%C3%A1tica-green)
+![Logs JSON estruturados](https://img.shields.io/badge/Logs-JSON%20Estruturados-blue)
+
+**Todo recurso público rastreado – conforme Lei 14.133/2021**
+
+## 📊 Auditoria e Compliance
+
+O Sentinela implementa auditoria global automática em todas as operações de modificação de dados (CREATE, UPDATE, DELETE), garantindo rastreabilidade completa conforme exigido pela Lei 14.133/2021.
+
+### Recursos de Auditoria:
+- ✅ Interceptação automática de todas as requisições POST, PATCH, PUT e DELETE
+- ✅ Captura de dados ANTES e DEPOIS de cada operação
+- ✅ Registro de usuário, entidade, IP e user agent
+- ✅ Logs estruturados em formato JSON (compatível com Vercel Logs e Grafana Loki)
+- ✅ Rastreabilidade completa de todas as ações no sistema
+
+### Logging Estruturado:
+Todos os logs são gerados em formato JSON profissional, incluindo:
+- Timestamp ISO
+- Nível de log (INFO, ERROR, WARN, DEBUG)
+- Contexto da aplicação
+- Metadados de auditoria (entidadeId, usuarioId, IP, etc.)
+- Compatibilidade com ferramentas de observabilidade modernas
