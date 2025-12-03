@@ -1,9 +1,9 @@
-# Dependencies
-node_modules/
-
 # Compiled output
 dist/
 build/
+
+# Dependencies
+node_modules/
 
 # Logs
 logs
