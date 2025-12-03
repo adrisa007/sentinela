@@ -17,12 +17,10 @@
  */
 
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
-
-const execAsync = promisify(exec);
 
 // Configuração
 const config = {
@@ -51,7 +49,7 @@ function generateBackupFileName(): string {
 }
 
 /**
- * Executa pg_dump para exportar o banco
+ * Executa pg_dump para exportar o banco usando spawn (seguro contra injection)
  */
 async function createDatabaseBackup(outputPath: string): Promise<void> {
   console.log('📦 Iniciando backup do banco de dados Neon...');
@@ -60,18 +58,40 @@ async function createDatabaseBackup(outputPath: string): Promise<void> {
     throw new Error('DATABASE_URL não configurada');
   }
 
-  // Usa pg_dump para criar o backup
-  const command = `pg_dump "${config.databaseUrl}" --format=plain --no-owner --no-acl > "${outputPath}"`;
-  
-  try {
-    const { stderr } = await execAsync(command);
-    if (stderr && !stderr.includes('pg_dump:')) {
-      console.warn('⚠️ Warnings:', stderr);
-    }
-    console.log('✅ Backup do banco criado com sucesso');
-  } catch (error) {
-    throw new Error(`Falha ao criar backup: ${error.message}`);
-  }
+  return new Promise((resolve, reject) => {
+    const outputStream = fs.createWriteStream(outputPath);
+    
+    // Usa spawn com array de argumentos para evitar command injection
+    const pgDump = spawn('pg_dump', [
+      config.databaseUrl,
+      '--format=plain',
+      '--no-owner',
+      '--no-acl',
+    ]);
+
+    pgDump.stdout.pipe(outputStream);
+    
+    let stderrData = '';
+    pgDump.stderr.on('data', (data) => {
+      stderrData += data.toString();
+    });
+
+    pgDump.on('close', (code) => {
+      if (code === 0) {
+        if (stderrData && !stderrData.includes('pg_dump:')) {
+          console.warn('⚠️ Warnings:', stderrData);
+        }
+        console.log('✅ Backup do banco criado com sucesso');
+        resolve();
+      } else {
+        reject(new Error(`pg_dump exited with code ${code}: ${stderrData}`));
+      }
+    });
+
+    pgDump.on('error', (err) => {
+      reject(new Error(`Falha ao executar pg_dump: ${err.message}`));
+    });
+  });
 }
 
 /**
@@ -130,7 +150,7 @@ async function main(): Promise<void> {
   console.log('═══════════════════════════════════════════════════\n');
 
   const fileName = generateBackupFileName();
-  const tempPath = path.join('/tmp', fileName);
+  const tempPath = path.join(os.tmpdir(), fileName);
 
   try {
     // 1. Criar backup
