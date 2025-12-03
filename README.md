@@ -18,3 +18,30 @@ Senha: `Sentinela2025!`
 Usuário ROOT (governança):  
 Login: `root@sentinela.app`  
 Senha + MFA: será enviado por WhatsApp
+
+🔑 Credenciais Iniciais
+Email: root@sentinela.app
+Senha: SentinelaRoot2025!
+⚠️ ALTERE A SENHA APÓS O PRIMEIRO LOGIN!
+
+📚 Documentação
+Endpoints
+POST /api/auth/login - Login
+POST /api/auth/totp/setup - Configurar MFA
+POST /api/auth/totp/verify - Verificar MFA
+GET /api/entidades - Listar entidades (ROOT)
+GET /api/fornecedores - Listar fornecedores
+GET /api/contratos - Listar contratos
+
+🛡️ Segurança
+Helmet + CORS + CSRF
+Rate limiting
+MFA obrigatório para ROOT/GESTOR
+Auditoria automática
+Logs estruturados (Winston)
+
+📊 Conformidade Lei 14.133/2021
+✅ Art. 14 - Certidões obrigatórias
+✅ Art. 117 - Fiscalização de contratos
+✅ Art. 137 - Penalidades
+✅ Art. 174 - Auditoria e transparência
