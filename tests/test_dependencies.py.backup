@@ -1,0 +1,188 @@
+# tests/test_dependencies.py
+import pytest
+from fastapi import HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
+from jose import jwt
+from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
+
+from app.core.dependencies import (
+    get_current_user,
+    get_current_active_superuser,
+    get_optional_current_user
+)
+from app.core.config import settings
+from app.models.user import User
+
+
+class TestGetCurrentUser:
+    """Testes para a função get_current_user"""
+    
+    def test_valid_token_returns_user(self, db: Session, test_user: User):
+        """Teste com token válido deve retornar o usuário"""
+        # Cria um token válido
+        token_data = {
+            "sub": str(test_user.id),
+            "exp": datetime.utcnow() + timedelta(minutes=30)
+        }
+        token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        
+        # Simula as credenciais
+        credentials = HTTPAuthorizationCredentials(
+            scheme="Bearer",
+            credentials=token
+        )
+        
+        # Chama a função
+        user = get_current_user(credentials=credentials, db=db)
+        
+        # Verifica
+        assert user.id == test_user.id
+        assert user.email == test_user.email
+    
+    def test_expired_token_raises_401(self, db: Session, test_user: User):
+        """Teste com token expirado deve lançar exceção 401"""
+        # Cria um token expirado
+        token_data = {
+            "sub": str(test_user.id),
+            "exp": datetime.utcnow() - timedelta(minutes=30)
+        }
+        token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        
+        credentials = HTTPAuthorizationCredentials(
+            scheme="Bearer",
+            credentials=token
+        )
+        
+        # Verifica que lança exceção
+        with pytest.raises(HTTPException) as exc_info:
+            get_current_user(credentials=credentials, db=db)
+        
+        assert exc_info.value.status_code == 401
+    
+    def test_invalid_token_raises_401(self, db: Session):
+        """Teste com token inválido deve lançar exceção 401"""
+        credentials = HTTPAuthorizationCredentials(
+            scheme="Bearer",
+            credentials="token_invalido_123"
+        )
+        
+        with pytest.raises(HTTPException) as exc_info:
+            get_current_user(credentials=credentials, db=db)
+        
+        assert exc_info.value.status_code == 401
+        assert "validar as credenciais" in exc_info.value.detail
+    
+    def test_token_without_sub_raises_401(self, db: Session):
+        """Teste com token sem campo 'sub' deve lançar exceção 401"""
+        token_data = {
+            "exp": datetime.utcnow() + timedelta(minutes=30)
+        }
+        token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        
+        credentials = HTTPAuthorizationCredentials(
+            scheme="Bearer",
+            credentials=token
+        )
+        
+        with pytest.raises(HTTPException) as exc_info:
+            get_current_user(credentials=credentials, db=db)
+        
+        assert exc_info.value.status_code == 401
+    
+    def test_nonexistent_user_raises_401(self, db: Session):
+        """Teste com usuário inexistente deve lançar exceção 401"""
+        token_data = {
+            "sub": "999999",  # ID que não existe
+            "exp": datetime.utcnow() + timedelta(minutes=30)
+        }
+        token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        
+        credentials = HTTPAuthorizationCredentials(
+            scheme="Bearer",
+            credentials=token
+        )
+        
+        with pytest.raises(HTTPException) as exc_info:
+            get_current_user(credentials=credentials, db=db)
+        
+        assert exc_info.value.status_code == 401
+    
+    def test_inactive_user_raises_403(self, db: Session, test_user: User):
+        """Teste com usuário inativo deve lançar exceção 403"""
+        # Desativa o usuário
+        test_user.is_active = False
+        db.commit()
+        
+        token_data = {
+            "sub": str(test_user.id),
+            "exp": datetime.utcnow() + timedelta(minutes=30)
+        }
+        token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        
+        credentials = HTTPAuthorizationCredentials(
+            scheme="Bearer",
+            credentials=token
+        )
+        
+        with pytest.raises(HTTPException) as exc_info:
+            get_current_user(credentials=credentials, db=db)
+        
+        assert exc_info.value.status_code == 403
+        assert "inativo" in exc_info.value.detail
+
+
+class TestGetCurrentActiveSuperuser:
+    """Testes para a função get_current_active_superuser"""
+    
+    def test_superuser_access_granted(self, test_superuser: User):
+        """Teste com superusuário deve permitir acesso"""
+        user = get_current_active_superuser(current_user=test_superuser)
+        assert user.is_superuser is True
+    
+    def test_regular_user_raises_403(self, test_user: User):
+        """Teste com usuário regular deve lançar exceção 403"""
+        with pytest.raises(HTTPException) as exc_info:
+            get_current_active_superuser(current_user=test_user)
+        
+        assert exc_info.value.status_code == 403
+        assert "privilégios" in exc_info.value.detail
+
+
+class TestGetOptionalCurrentUser:
+    """Testes para a função get_optional_current_user"""
+    
+    def test_valid_token_returns_user(self, db: Session, test_user: User):
+        """Teste com token válido deve retornar o usuário"""
+        token_data = {
+            "sub": str(test_user.id),
+            "exp": datetime.utcnow() + timedelta(minutes=30)
+        }
+        token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        
+        credentials = HTTPAuthorizationCredentials(
+            scheme="Bearer",
+            credentials=token
+        )
+        
+        user = get_optional_current_user(credentials=credentials, db=db)
+        assert user is not None
+        assert user.id == test_user.id
+    
+    def test_no_credentials_returns_none(self, db: Session):
+        """Teste sem credenciais deve retornar None"""
+        user = get_optional_current_user(credentials=None, db=db)
+        assert user is None
+    
+    def test_invalid_token_returns_none(self, db: Session):
+        """Teste com token inválido deve retornar None"""
+        credentials = HTTPAuthorizationCredentials(
+            scheme="Bearer",
+            credentials="token_invalido"
+        )
+        
+        user = get_optional_current_user(credentials=credentials, db=db)
+        assert user is None
+
+
+# Fixtures necessárias (adicionar em conftest.py se não existirem)

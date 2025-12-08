@@ -1,0 +1,318 @@
+"""
+Router de Entidades - CRUD completo com validações de segurança
+✅ Validação seletiva: ROOT sem entidade pode criar, outros precisam de entidade ativa
+"""
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List, Optional
+from datetime import datetime
+
+from app.core.database import get_db
+from app.core.models import Entidade, User, TipoEntidade, StatusEntidade
+from app.core.schemas import (
+    EntidadeCreate,
+    EntidadeUpdate,
+    EntidadeResponse,
+    EntidadeResponseComplete,
+    EntidadeStatusUpdate,
+    MessageResponse
+)
+from app.core.dependencies import (
+    require_root_user,
+    require_gestor,
+    get_current_user,
+    get_current_entidade,
+    require_active_entidade,
+    CurrentUser
+)
+
+router = APIRouter(
+    prefix="/entidades",
+    tags=["Entidades"]
+    # ❌ NÃO aplicar require_active_entidade no router
+    # Será aplicado seletivamente em cada endpoint
+)
+
+
+# ============ Endpoints ROOT (SEM require_active_entidade) ============
+
+@router.post(
+    "/",
+    response_model=EntidadeResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Criar Entidade (ROOT)",
+    description="🔒 Cria uma nova entidade. **Apenas ROOT** (não requer entidade própria)."
+)
+async def create_entidade(
+    entidade_data: EntidadeCreate,
+    root_user: CurrentUser = Depends(require_root_user),
+    db: Session = Depends(get_db)
+):
+    """
+    🔒 **Criar Nova Entidade - Apenas ROOT**
+    
+    **Validações:**
+    - ✅ Perfil ROOT obrigatório
+    - ✅ MFA verificado
+    - ❌ NÃO requer entidade própria (ROOT pode não ter entidade)
+    """
+    from app.core.dependencies import logger
+    
+    logger.info(f"🔐 ROOT '{root_user.username}' criando entidade: '{entidade_data.nome}'")
+    
+    # Validação: CNPJ único
+    if entidade_data.cnpj:
+        existing = db.query(Entidade).filter(Entidade.cnpj == entidade_data.cnpj).first()
+        if existing:
+            raise HTTPException(400, f"CNPJ '{entidade_data.cnpj}' já cadastrado")
+    
+    # Validação: Email único
+    if entidade_data.email:
+        existing = db.query(Entidade).filter(Entidade.email == entidade_data.email).first()
+        if existing:
+            raise HTTPException(400, f"Email '{entidade_data.email}' já cadastrado")
+    
+    # Criar entidade
+    new_entidade = Entidade(
+        **entidade_data.model_dump(),
+        status=StatusEntidade.ATIVA,
+        is_active=True
+    )
+    
+    db.add(new_entidade)
+    db.commit()
+    db.refresh(new_entidade)
+    
+    logger.info(f"✅ Entidade '{new_entidade.nome}' criada por ROOT '{root_user.username}'")
+    return new_entidade
+
+
+@router.get(
+    "/",
+    response_model=List[EntidadeResponse],
+    summary="Listar Entidades (GESTOR+)",
+    description="📋 Lista entidades. Requer GESTOR+ com entidade ativa.",
+    dependencies=[Depends(require_active_entidade())]  # ✅ Aplicado aqui
+)
+async def list_entidades(
+    skip: int = 0,
+    limit: int = 100,
+    status_filter: Optional[StatusEntidade] = None,
+    tipo_filter: Optional[TipoEntidade] = None,
+    current_user: CurrentUser = Depends(require_gestor),
+    db: Session = Depends(get_db)
+):
+    """
+    📋 **Listar Entidades - GESTOR ou ROOT**
+    
+    **Validações:**
+    - ✅ Perfil GESTOR ou ROOT
+    - ✅ Entidade ativa
+    """
+    query = db.query(Entidade)
+    
+    if status_filter:
+        query = query.filter(Entidade.status == status_filter)
+    
+    if tipo_filter:
+        query = query.filter(Entidade.tipo == tipo_filter)
+    
+    return query.offset(skip).limit(limit).all()
+
+
+@router.get(
+    "/{entidade_id}",
+    response_model=EntidadeResponseComplete,
+    summary="Buscar Entidade por ID (GESTOR+)",
+    description="🔍 Busca entidade. Requer GESTOR+ com entidade ativa.",
+    dependencies=[Depends(require_active_entidade())]  # ✅ Aplicado aqui
+)
+async def get_entidade_by_id(
+    entidade_id: int,
+    current_user: CurrentUser = Depends(require_gestor),
+    db: Session = Depends(get_db)
+):
+    """🔍 **Buscar Entidade por ID**"""
+    entidade = db.query(Entidade).filter(Entidade.id == entidade_id).first()
+    
+    if not entidade:
+        raise HTTPException(404, f"Entidade {entidade_id} não encontrada")
+    
+    return entidade
+
+
+@router.put(
+    "/{entidade_id}",
+    response_model=EntidadeResponse,
+    summary="Atualizar Entidade (ROOT)",
+    description="✏️ Atualiza entidade. **Apenas ROOT**."
+)
+async def update_entidade(
+    entidade_id: int,
+    entidade_data: EntidadeUpdate,
+    root_user: CurrentUser = Depends(require_root_user),
+    db: Session = Depends(get_db)
+):
+    """🔒 **Atualizar Entidade - Apenas ROOT** (não requer entidade própria)"""
+    from app.core.dependencies import logger
+    
+    entidade = db.query(Entidade).filter(Entidade.id == entidade_id).first()
+    if not entidade:
+        raise HTTPException(404, f"Entidade {entidade_id} não encontrada")
+    
+    logger.info(f"🔐 ROOT '{root_user.username}' atualizando entidade '{entidade.nome}'")
+    
+    for field, value in entidade_data.model_dump(exclude_unset=True).items():
+        setattr(entidade, field, value)
+    
+    db.commit()
+    db.refresh(entidade)
+    
+    return entidade
+
+
+@router.put(
+    "/{entidade_id}/status",
+    response_model=MessageResponse,
+    summary="Alterar Status (ROOT)",
+    description="🔄 Altera status. **Apenas ROOT**."
+)
+async def update_entidade_status(
+    entidade_id: int,
+    status_data: EntidadeStatusUpdate,
+    root_user: CurrentUser = Depends(require_root_user),
+    db: Session = Depends(get_db)
+):
+    """🔒 **Alterar Status - Apenas ROOT** (não requer entidade própria)"""
+    from app.core.dependencies import logger
+    
+    entidade = db.query(Entidade).filter(Entidade.id == entidade_id).first()
+    if not entidade:
+        raise HTTPException(404, f"Entidade {entidade_id} não encontrada")
+    
+    status_atual = str(entidade.status.value if hasattr(entidade.status, 'value') else entidade.status)
+    novo_status = str(status_data.status.value if hasattr(status_data.status, 'value') else status_data.status)
+    
+    logger.warning(
+        f"🔐 ROOT '{root_user.username}' alterando status de '{entidade.nome}' "
+        f"de '{status_atual}' para '{novo_status}'"
+    )
+    
+    entidade.status = status_data.status
+    entidade.motivo_status = status_data.motivo
+    entidade.data_mudanca_status = datetime.utcnow()
+    entidade.is_active = (status_data.status == StatusEntidade.ATIVA)
+    
+    db.commit()
+    
+    return MessageResponse(
+        message=f"Status de '{entidade.nome}' alterado para {novo_status}",
+        detail=f"Alterado por: {root_user.username} - Motivo: {status_data.motivo or 'N/A'}"
+    )
+
+
+@router.patch(
+    "/{entidade_id}/status",
+    response_model=MessageResponse,
+    summary="Alterar Status (ROOT) - PATCH",
+    description="🔄 Altera status via PATCH. **Apenas ROOT**."
+)
+async def patch_entidade_status(
+    entidade_id: int,
+    status_data: EntidadeStatusUpdate,
+    root_user: CurrentUser = Depends(require_root_user),
+    db: Session = Depends(get_db)
+):
+    """🔒 **Alterar Status via PATCH - Apenas ROOT** (não requer entidade própria)"""
+    # Reusar implementação do PUT
+    return await update_entidade_status(entidade_id, status_data, root_user, db)
+
+
+@router.delete(
+    "/{entidade_id}",
+    response_model=MessageResponse,
+    summary="Deletar Entidade (ROOT)",
+    description="🗑️ Deleta entidade. **Apenas ROOT**."
+)
+async def delete_entidade(
+    entidade_id: int,
+    root_user: CurrentUser = Depends(require_root_user),
+    db: Session = Depends(get_db)
+):
+    """🔒 **Deletar Entidade - Apenas ROOT** (não requer entidade própria)"""
+    from app.core.dependencies import logger
+    
+    entidade = db.query(Entidade).filter(Entidade.id == entidade_id).first()
+    if not entidade:
+        raise HTTPException(404, f"Entidade {entidade_id} não encontrada")
+    
+    # Verificar usuários associados
+    if entidade.usuarios:
+        raise HTTPException(
+            400,
+            f"Não é possível deletar '{entidade.nome}'. "
+            f"Há {len(entidade.usuarios)} usuário(s) associado(s)."
+        )
+    
+    nome_entidade = entidade.nome
+    db.delete(entidade)
+    db.commit()
+    
+    logger.info(f"✅ Entidade '{nome_entidade}' deletada por ROOT '{root_user.username}'")
+    
+    return MessageResponse(
+        message=f"Entidade '{nome_entidade}' deletada com sucesso",
+        detail=f"Operação executada por: {root_user.username}"
+    )
+
+
+# ============ Endpoints para Usuários Comuns (COM require_active_entidade) ============
+
+@router.get(
+    "/me/entidade",
+    response_model=EntidadeResponseComplete,
+    summary="Minha Entidade",
+    description="🏢 Retorna entidade do usuário. Requer entidade ativa.",
+    dependencies=[Depends(require_active_entidade())]  # ✅ Aplicado aqui
+)
+async def get_my_entidade(
+    entidade: Entidade = Depends(get_current_entidade)
+):
+    """
+    🏢 **Obter Minha Entidade**
+    
+    **Validações:**
+    - ✅ Usuário autenticado
+    - ✅ Entidade ativa
+    """
+    return entidade
+
+
+@router.get(
+    "/me/entidade/usuarios",
+    response_model=List[dict],
+    summary="Usuários da Minha Entidade (GESTOR+)",
+    description="👥 Lista usuários da entidade. Requer GESTOR+ com entidade ativa.",
+    dependencies=[Depends(require_active_entidade())]  # ✅ Aplicado aqui
+)
+async def get_entidade_usuarios(
+    entidade: Entidade = Depends(get_current_entidade),
+    current_user: CurrentUser = Depends(require_gestor)
+):
+    """
+    👥 **Listar Usuários da Minha Entidade**
+    
+    **Validações:**
+    - ✅ Perfil GESTOR ou ROOT
+    - ✅ Entidade ativa
+    """
+    return [
+        {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role.value,
+            "is_active": user.is_active
+        }
+        for user in entidade.usuarios
+    ]

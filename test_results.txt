@@ -1,0 +1,124 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.1, pytest-7.4.4, pluggy-1.6.0 -- /workspaces/sentinela/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /workspaces/sentinela
+configfile: pytest.ini
+plugins: asyncio-0.23.3, anyio-3.7.1, cov-4.1.0
+asyncio: mode=Mode.AUTO
+collecting ... collected 92 items
+
+tests/test_active_entidade_validation.py::TestActiveEntidadeValidation::test_cameras_with_active_entidade_success PASSED [  1%]
+tests/test_active_entidade_validation.py::TestActiveEntidadeValidation::test_cameras_with_inactive_entidade_fails PASSED [  2%]
+tests/test_active_entidade_validation.py::TestActiveEntidadeValidation::test_entidades_list_with_active_entidade_success PASSED [  3%]
+tests/test_active_entidade_validation.py::TestActiveEntidadeValidation::test_entidades_list_with_inactive_entidade_fails PASSED [  4%]
+tests/test_active_entidade_validation.py::TestAuthRoutesNoEntidadeValidation::test_auth_routes_work_without_entidade PASSED [  5%]
+tests/test_dependencies.py::test_decode_jwt_token_valid PASSED           [  6%]
+tests/test_dependencies.py::test_decode_jwt_token_invalid PASSED         [  7%]
+tests/test_dependencies.py::test_current_user_class PASSED               [  8%]
+tests/test_dependencies.py::test_current_user_class_with_mfa PASSED      [  9%]
+tests/test_dependencies.py::test_require_role_returns_dependency PASSED  [ 10%]
+tests/test_dependencies.py::test_require_root_exists PASSED              [ 11%]
+tests/test_dependencies.py::test_require_gestor_exists PASSED            [ 13%]
+tests/test_dependencies.py::test_user_roles_enum PASSED                  [ 14%]
+tests/test_dependencies.py::TestDependenciesIntegration::test_imports_success PASSED [ 15%]
+tests/test_dependencies.py::TestDependenciesIntegration::test_current_user_attributes PASSED [ 16%]
+tests/test_dependencies.py::TestDependenciesIntegration::test_jwt_token_with_integer_sub PASSED [ 17%]
+tests/test_dependencies.py::TestDependenciesIntegration::test_require_role_with_multiple_roles PASSED [ 18%]
+tests/test_dependencies_mfa.py::TestMFARequirement::test_root_without_mfa_configured_fails PASSED [ 19%]
+tests/test_dependencies_mfa.py::TestMFARequirement::test_gestor_without_mfa_configured_fails PASSED [ 20%]
+tests/test_dependencies_mfa.py::TestMFARequirement::test_operador_without_mfa_allowed PASSED [ 21%]
+tests/test_dependencies_mfa.py::TestMFARequirement::test_token_without_totp_for_root_fails PASSED [ 22%]
+tests/test_dependencies_mfa.py::TestMFARequirement::test_token_with_totp_for_root_has_field PASSED [ 23%]
+tests/test_dependencies_mfa.py::TestMFARequirement::test_user_roles_require_mfa PASSED [ 25%]
+tests/test_entidade_dependency.py::TestGetCurrentEntidade::test_user_with_entidade_returns_entity PASSED [ 26%]
+tests/test_entidade_dependency.py::TestGetCurrentEntidade::test_user_without_entidade_raises_404 PASSED [ 27%]
+tests/test_entidade_dependency.py::TestGetCurrentEntidade::test_entidade_has_correct_attributes PASSED [ 28%]
+tests/test_entidade_dependency.py::TestGetCurrentEntidade::test_entidade_relationship_with_user PASSED [ 29%]
+tests/test_entidade_dependency.py::TestGetCurrentEntidade::test_multiple_users_same_entidade PASSED [ 30%]
+tests/test_entidade_dependency.py::TestGetCurrentEntidadeOptional::test_returns_none_for_user_without_entidade PASSED [ 31%]
+tests/test_entidade_dependency.py::TestGetCurrentEntidadeOptional::test_returns_entidade_for_user_with_entidade PASSED [ 32%]
+tests/test_entidade_dependency.py::TestEntidadeModel::test_entidade_creation PASSED [ 33%]
+tests/test_entidade_dependency.py::TestEntidadeModel::test_entidade_tipos PASSED [ 34%]
+tests/test_entidades_router.py::TestCreateEntidadeRequireRoot::test_create_entidade_with_root_success PASSED [ 35%]
+tests/test_entidades_router.py::TestCreateEntidadeRequireRoot::test_create_entidade_with_gestor_fails PASSED [ 36%]
+tests/test_entidades_router.py::TestCreateEntidadeRequireRoot::test_create_entidade_with_operador_fails PASSED [ 38%]
+tests/test_entidades_router.py::TestCreateEntidadeRequireRoot::test_create_entidade_without_auth_fails PASSED [ 39%]
+tests/test_entidades_router.py::TestCreateEntidadeRequireRoot::test_create_entidade_duplicate_cnpj_fails PASSED [ 40%]
+tests/test_entidades_router.py::TestListEntidades::test_list_entidades_root_success PASSED [ 41%]
+tests/test_entidades_router.py::TestListEntidades::test_list_entidades_gestor_success PASSED [ 42%]
+tests/test_entidades_router.py::TestListEntidades::test_list_entidades_operador_fails PASSED [ 43%]
+tests/test_entidades_router.py::TestEntidadesCRUD::test_full_entidade_lifecycle PASSED [ 44%]
+tests/test_entidades_router.py::TestEntidadeMFAValidation::test_root_without_valid_totp_fails PASSED [ 45%]
+tests/test_entidades_router.py::TestEntidadeMFAValidation::test_root_without_totp_in_token_fails PASSED [ 46%]
+tests/test_entidades_router.py::TestPatchEntidadeStatus::test_patch_status_with_root_success PASSED [ 47%]
+tests/test_entidades_router.py::TestPatchEntidadeStatus::test_patch_status_with_gestor_fails PASSED [ 48%]
+tests/test_entidades_router.py::TestPatchEntidadeStatus::test_patch_status_operador_fails PASSED [ 50%]
+tests/test_entidades_router.py::TestPatchEntidadeStatus::test_patch_status_all_statuses PASSED [ 51%]
+tests/test_entidades_router.py::TestPatchEntidadeStatus::test_patch_status_nonexistent_entidade_fails PASSED [ 52%]
+tests/test_entidades_router.py::TestPatchEntidadeStatus::test_patch_vs_put_equivalence PASSED [ 53%]
+tests/test_require_active_entidade.py::TestRequireActiveEntidade::test_entidade_ativa_allows_access PASSED [ 54%]
+tests/test_require_active_entidade.py::TestRequireActiveEntidade::test_entidade_inativa_denies_access PASSED [ 55%]
+tests/test_require_active_entidade.py::TestRequireActiveEntidade::test_entidade_suspensa_denies_access PASSED [ 56%]
+tests/test_require_active_entidade.py::TestRequireActiveEntidade::test_entidade_bloqueada_denies_access PASSED [ 57%]
+tests/test_require_active_entidade.py::TestRequireActiveEntidade::test_entidade_em_analise_denies_access PASSED [ 58%]
+tests/test_require_active_entidade.py::TestRequireActiveEntidade::test_entidade_is_acessivel_property PASSED [ 59%]
+tests/test_require_active_entidade.py::TestStatusEntidadeEnum::test_all_status_values PASSED [ 60%]
+tests/test_require_active_entidade.py::TestStatusEntidadeEnum::test_status_count PASSED [ 61%]
+tests/test_require_active_entidade.py::TestEntidadeStatusTransitions::test_change_status_from_ativa_to_inativa PASSED [ 63%]
+tests/test_require_active_entidade.py::TestEntidadeStatusTransitions::test_reactivate_inactive_entidade PASSED [ 64%]
+tests/test_require_root_user.py::TestRequireRootUser::test_root_user_is_root PASSED [ 65%]
+tests/test_require_root_user.py::TestRequireRootUser::test_gestor_is_not_root PASSED [ 66%]
+tests/test_require_root_user.py::TestRequireRootUser::test_operador_is_not_root PASSED [ 67%]
+tests/test_require_root_user.py::TestRequireRootUser::test_root_user_with_mfa PASSED [ 68%]
+tests/test_require_root_user.py::TestRequireRootUser::test_root_user_without_mfa_should_fail PASSED [ 69%]
+tests/test_require_root_user.py::TestRootOrOwner::test_root_can_access_any_resource PASSED [ 70%]
+tests/test_require_root_user.py::TestRootOrOwner::test_user_can_access_own_resource PASSED [ 71%]
+tests/test_require_root_user.py::TestRootOrOwner::test_user_cannot_access_others_resource PASSED [ 72%]
+tests/test_require_root_user.py::TestUserRoles::test_all_user_roles PASSED [ 73%]
+tests/test_require_root_user.py::TestUserRoles::test_role_hierarchy PASSED [ 75%]
+tests/test_require_root_user.py::TestRootUserSecurity::test_root_requires_mfa PASSED [ 76%]
+tests/test_require_root_user.py::TestRootUserSecurity::test_root_is_active PASSED [ 77%]
+tests/test_require_root_user.py::TestRootUserSecurity::test_multiple_root_users_allowed PASSED [ 78%]
+tests/test_security.py::TestSecurityCreateEntidade::test_gestor_create_entidade_returns_403 PASSED [ 79%]
+tests/test_security.py::TestSecurityCreateEntidade::test_operador_create_entidade_returns_403 PASSED [ 80%]
+tests/test_security.py::TestSecurityCreateEntidade::test_root_create_entidade_succeeds PASSED [ 81%]
+tests/test_security.py::TestSecurityCreateEntidade::test_unauthenticated_create_entidade_returns_401_or_403 PASSED [ 82%]
+tests/test_security.py::TestSecurityCreateEntidade::test_invalid_token_create_entidade_returns_401 PASSED [ 83%]
+tests/test_security.py::TestSecurityGestorPermissions::test_gestor_can_list_entidades PASSED [ 84%]
+tests/test_security.py::TestSecurityGestorPermissions::test_gestor_can_view_entidade PASSED [ 85%]
+tests/test_security.py::TestSecurityGestorPermissions::test_gestor_cannot_update_entidade PASSED [ 86%]
+tests/test_security.py::TestSecurityGestorPermissions::test_gestor_cannot_change_status PASSED [ 88%]
+tests/test_security.py::TestSecurityGestorPermissions::test_gestor_cannot_delete_entidade PASSED [ 89%]
+tests/test_security.py::TestSecurityOperadorPermissions::test_operador_cannot_list_all_entidades PASSED [ 90%]
+tests/test_security.py::TestSecurityOperadorPermissions::test_operador_cannot_view_any_entidade PASSED [ 91%]
+tests/test_security.py::TestSecurityOperadorPermissions::test_operador_can_view_own_entidade PASSED [ 92%]
+tests/test_security.py::TestSecurityMFAValidation::test_gestor_without_mfa_cannot_create_entidade PASSED [ 93%]
+tests/test_security.py::TestSecurityMFAValidation::test_root_without_mfa_cannot_create_entidade PASSED [ 94%]
+tests/test_security.py::TestSecurityRoleHierarchy::test_role_hierarchy_create_entidade PASSED [ 95%]
+tests/test_security.py::TestSecurityRoleHierarchy::test_role_hierarchy_update_entidade PASSED [ 96%]
+tests/test_security.py::TestSecurityAuditLog::test_failed_access_is_logged PASSED [ 97%]
+tests/test_security.py::TestSecurityRegression::test_gestor_cannot_bypass_with_multiple_requests PASSED [ 98%]
+tests/test_security.py::TestSecurityRegression::test_gestor_cannot_escalate_privileges PASSED [100%]
+
+---------- coverage: platform linux, python 3.12.1-final-0 -----------
+Name                              Stmts   Miss  Cover   Missing
+---------------------------------------------------------------
+app/__init__.py                       1      0   100%
+app/core/__init__.py                  4      0   100%
+app/core/auth.py                     58     25    57%   18, 22, 49, 53-61, 67-68, 72-76, 84, 88-92
+app/core/config.py                   20      0   100%
+app/core/database.py                 13      4    69%   18-22
+app/core/dependencies.py            189     81    57%   51, 76, 126-127, 136-138, 147-148, 156-157, 170-173, 183-186, 288-301, 353-356, 370-373, 416-424, 436-442, 494-526, 564-587, 607-623, 714-718, 761-799, 823-834, 860-862, 884-886, 889-896, 899-916
+app/core/models.py                   72      4    94%   86, 99, 138, 141
+app/core/schemas.py                 110     10    91%   14-16, 25-31
+app/core/user.py                      4      4     0%   1-4
+app/main.py                          18      2    89%   55, 75
+app/routers/__init__.py               2      0   100%
+app/routers/auth_router.py           63     40    37%   25-40, 50-63, 69, 78-90, 105-116
+app/routers/cameras.py               23      4    83%   74, 100, 126, 150
+app/routers/entidades_router.py      90      8    91%   73, 115, 118, 139, 161, 247, 251, 309
+---------------------------------------------------------------
+TOTAL                               667    182    73%
+
+
+======================= 92 passed, 170 warnings in 2.61s =======================
