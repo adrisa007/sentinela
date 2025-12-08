@@ -3,7 +3,6 @@ Router de Entidades - CRUD completo com validações de segurança
 ✅ Validação seletiva: ROOT sem entidade pode criar, outros precisam de entidade ativa
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -30,8 +29,12 @@ from app.core.dependencies import (
 router = APIRouter(
     prefix="/entidades",
     tags=["Entidades"]
+    # ❌ NÃO aplicar require_active_entidade no router
+    # Será aplicado seletivamente em cada endpoint
 )
 
+
+# ============ Endpoints ROOT (SEM require_active_entidade) ============
 
 @router.post(
     "/",
@@ -45,21 +48,31 @@ async def create_entidade(
     root_user: CurrentUser = Depends(require_root_user),
     db: Session = Depends(get_db)
 ):
-    """🔒 Criar Nova Entidade - Apenas ROOT"""
+    """
+    🔒 **Criar Nova Entidade - Apenas ROOT**
+    
+    **Validações:**
+    - ✅ Perfil ROOT obrigatório
+    - ✅ MFA verificado
+    - ❌ NÃO requer entidade própria (ROOT pode não ter entidade)
+    """
     from app.core.dependencies import logger
     
     logger.info(f"🔐 ROOT '{root_user.username}' criando entidade: '{entidade_data.nome}'")
     
+    # Validação: CNPJ único
     if entidade_data.cnpj:
         existing = db.query(Entidade).filter(Entidade.cnpj == entidade_data.cnpj).first()
         if existing:
             raise HTTPException(400, f"CNPJ '{entidade_data.cnpj}' já cadastrado")
     
+    # Validação: Email único
     if entidade_data.email:
         existing = db.query(Entidade).filter(Entidade.email == entidade_data.email).first()
         if existing:
             raise HTTPException(400, f"Email '{entidade_data.email}' já cadastrado")
     
+    # Criar entidade
     new_entidade = Entidade(
         **entidade_data.model_dump(),
         status=StatusEntidade.ATIVA,
@@ -79,7 +92,7 @@ async def create_entidade(
     response_model=List[EntidadeResponse],
     summary="Listar Entidades (GESTOR+)",
     description="📋 Lista entidades. Requer GESTOR+ com entidade ativa.",
-    dependencies=[Depends(require_active_entidade())]
+    dependencies=[Depends(require_active_entidade())]  # ✅ Aplicado aqui
 )
 async def list_entidades(
     skip: int = 0,
@@ -89,7 +102,13 @@ async def list_entidades(
     current_user: CurrentUser = Depends(require_gestor),
     db: Session = Depends(get_db)
 ):
-    """📋 Listar Entidades - GESTOR ou ROOT"""
+    """
+    📋 **Listar Entidades - GESTOR ou ROOT**
+    
+    **Validações:**
+    - ✅ Perfil GESTOR ou ROOT
+    - ✅ Entidade ativa
+    """
     query = db.query(Entidade)
     
     if status_filter:
@@ -105,19 +124,22 @@ async def list_entidades(
     "/{entidade_id}",
     summary="Buscar Entidade por ID (GESTOR+)",
     description="🔍 Busca entidade. Requer GESTOR+ com entidade ativa.",
-    dependencies=[Depends(require_active_entidade())]
+    dependencies=[Depends(require_active_entidade())]  # ✅ Aplicado aqui
 )
 async def get_entidade_by_id(
     entidade_id: int,
     current_user: CurrentUser = Depends(require_gestor),
     db: Session = Depends(get_db)
 ):
-    """🔍 Buscar Entidade por ID"""
+    """🔍 **Buscar Entidade por ID**"""
+    from fastapi.responses import JSONResponse
+    
     entidade = db.query(Entidade).filter(Entidade.id == entidade_id).first()
     
     if not entidade:
         raise HTTPException(404, f"Entidade {entidade_id} não encontrada")
     
+    # Retornar como JSONResponse para evitar erro de serialização
     return JSONResponse(content={
         "id": entidade.id,
         "nome": entidade.nome,
@@ -149,7 +171,7 @@ async def update_entidade(
     root_user: CurrentUser = Depends(require_root_user),
     db: Session = Depends(get_db)
 ):
-    """🔒 Atualizar Entidade - Apenas ROOT"""
+    """🔒 **Atualizar Entidade - Apenas ROOT** (não requer entidade própria)"""
     from app.core.dependencies import logger
     
     entidade = db.query(Entidade).filter(Entidade.id == entidade_id).first()
@@ -179,7 +201,7 @@ async def update_entidade_status(
     root_user: CurrentUser = Depends(require_root_user),
     db: Session = Depends(get_db)
 ):
-    """🔒 Alterar Status - Apenas ROOT"""
+    """🔒 **Alterar Status - Apenas ROOT** (não requer entidade própria)"""
     from app.core.dependencies import logger
     
     entidade = db.query(Entidade).filter(Entidade.id == entidade_id).first()
@@ -219,7 +241,8 @@ async def patch_entidade_status(
     root_user: CurrentUser = Depends(require_root_user),
     db: Session = Depends(get_db)
 ):
-    """🔒 Alterar Status via PATCH - Apenas ROOT"""
+    """🔒 **Alterar Status via PATCH - Apenas ROOT** (não requer entidade própria)"""
+    # Reusar implementação do PUT
     return await update_entidade_status(entidade_id, status_data, root_user, db)
 
 
@@ -234,13 +257,14 @@ async def delete_entidade(
     root_user: CurrentUser = Depends(require_root_user),
     db: Session = Depends(get_db)
 ):
-    """🔒 Deletar Entidade - Apenas ROOT"""
+    """🔒 **Deletar Entidade - Apenas ROOT** (não requer entidade própria)"""
     from app.core.dependencies import logger
     
     entidade = db.query(Entidade).filter(Entidade.id == entidade_id).first()
     if not entidade:
         raise HTTPException(404, f"Entidade {entidade_id} não encontrada")
     
+    # Verificar usuários associados
     if entidade.usuarios:
         raise HTTPException(
             400,
@@ -260,47 +284,49 @@ async def delete_entidade(
     )
 
 
+# ============ Endpoints para Usuários Comuns (COM require_active_entidade) ============
+
 @router.get(
     "/me/entidade",
+    response_model=EntidadeResponseComplete,
     summary="Minha Entidade",
     description="🏢 Retorna entidade do usuário. Requer entidade ativa.",
-    dependencies=[Depends(require_active_entidade())]
+    dependencies=[Depends(require_active_entidade())]  # ✅ Aplicado aqui
 )
 async def get_my_entidade(
     entidade: Entidade = Depends(get_current_entidade)
 ):
-    """🏢 Obter Minha Entidade"""
-    return JSONResponse(content={
-        "id": entidade.id,
-        "nome": entidade.nome,
-        "razao_social": entidade.razao_social,
-        "cnpj": entidade.cnpj,
-        "tipo": entidade.tipo.value if hasattr(entidade.tipo, 'value') else str(entidade.tipo),
-        "email": entidade.email,
-        "telefone": entidade.telefone,
-        "endereco": entidade.endereco,
-        "cidade": entidade.cidade,
-        "estado": entidade.estado,
-        "cep": entidade.cep,
-        "status": entidade.status.value if hasattr(entidade.status, 'value') else str(entidade.status),
-        "is_active": entidade.is_active,
-        "created_at": entidade.created_at.isoformat() if entidade.created_at else None,
-        "usuarios": [{"id": u.id, "username": u.username} for u in entidade.usuarios] if entidade.usuarios else []
-    })
+    """
+    🏢 **Obter Minha Entidade**
+    
+    **Validações:**
+    - ✅ Usuário autenticado
+    - ✅ Entidade ativa
+    """
+    return entidade
 
 
 @router.get(
     "/me/entidade/usuarios",
+    response_model=List[dict],
     summary="Usuários da Minha Entidade (GESTOR+)",
-    description="👥 Lista usuários da minha entidade.",
-    dependencies=[Depends(require_active_entidade())]
+    description="👥 Lista usuários da entidade. Requer GESTOR+ com entidade ativa.",
+    dependencies=[Depends(require_active_entidade())]  # ✅ Aplicado aqui
 )
 async def get_entidade_usuarios(
     entidade: Entidade = Depends(get_current_entidade),
     current_user: CurrentUser = Depends(require_gestor)
 ):
-    """👥 Listar Usuários da Minha Entidade"""
-    usuarios_data = [
+    """
+    👥 **Listar Usuários da Minha Entidade**
+    
+    **Validações:**
+    - ✅ Perfil GESTOR ou ROOT
+    - ✅ Entidade ativa
+    """
+    from fastapi.responses import JSONResponse
+    
+    return JSONResponse(content=[
         {
             "id": user.id,
             "username": user.username,
@@ -309,6 +335,13 @@ async def get_entidade_usuarios(
             "is_active": user.is_active
         }
         for user in entidade.usuarios
+    ])
+        {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role.value,
+            "is_active": user.is_active
+        }
+        for user in entidade.usuarios
     ]
-    
-    return JSONResponse(content=usuarios_data)

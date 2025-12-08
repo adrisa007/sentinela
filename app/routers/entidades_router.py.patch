@@ -1,0 +1,33 @@
+# Substituir a função get_entidade_usuarios completa
+
+@router.get(
+    "/me/entidade/usuarios",
+    summary="Usuários da Minha Entidade (GESTOR+)",
+    description="👥 Lista usuários da minha entidade.",
+    dependencies=[Depends(require_active_entidade())]  # ✅ Aplicado aqui
+)
+async def get_entidade_usuarios(
+    entidade: Entidade = Depends(get_current_entidade),
+    current_user: CurrentUser = Depends(require_gestor)
+):
+    """
+    👥 **Listar Usuários da Minha Entidade**
+    
+    **Validações:**
+    - ✅ Perfil GESTOR ou ROOT
+    - ✅ Entidade ativa
+    """
+    from fastapi.responses import JSONResponse
+    
+    usuarios_data = [
+        {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+            "is_active": user.is_active
+        }
+        for user in entidade.usuarios
+    ]
+    
+    return JSONResponse(content=usuarios_data)
