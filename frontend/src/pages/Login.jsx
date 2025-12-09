@@ -4,24 +4,35 @@ import { useForm } from 'react-hook-form'
 import { useAuth } from '@contexts/AuthContext'
 
 /**
- * Login Page com React Hook Form
+ * Login Page Integrado com AuthContext
  * Repository: adrisa007/sentinela (ID: 1112237272)
  * 
  * Features:
- * - Email/Senha validation
- * - React Hook Form
- * - MFA TOTP support
- * - Auto-redirect se autenticado
- * - Error handling
+ * - Integração completa com AuthContext
+ * - Error handling detalhado
+ * - Mensagens de erro específicas
+ * - Validação de credenciais
+ * - MFA TOTP obrigatório (ROOT/GESTOR)
  * - Loading states
  */
 
 function Login() {
   const [showMFA, setShowMFA] = useState(false)
+  const [requiresMFASetup, setRequiresMFASetup] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [userRole, setUserRole] = useState(null)
+  const [attemptCount, setAttemptCount] = useState(0)
   
-  const { login, loginWithMFA, isAuthenticated, loading } = useAuth()
+  // AuthContext - Integração completa
+  const { 
+    login, 
+    loginWithMFA, 
+    isAuthenticated, 
+    loading: authLoading,
+    user 
+  } = useAuth()
+  
   const navigate = useNavigate()
   const location = useLocation()
   
@@ -30,11 +41,11 @@ function Login() {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
     setFocus,
+    getValues,
     reset,
   } = useForm({
-    mode: 'onBlur', // Validar ao perder foco
+    mode: 'onBlur',
     defaultValues: {
       email: '',
       password: '',
@@ -43,91 +54,308 @@ function Login() {
     },
   })
 
-  // Auto-redirect se já autenticado
+  // ==========================================
+  // AUTO-REDIRECT SE AUTENTICADO
+  // ==========================================
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
+      console.log('[Login] Usuário já autenticado, redirecionando...')
       const from = location.state?.from?.pathname || '/dashboard'
       navigate(from, { replace: true })
     }
-  }, [isAuthenticated, navigate, location])
+  }, [isAuthenticated, user, navigate, location])
 
-  // Focus no campo MFA quando aparecer
+  // ==========================================
+  // AUTO-FOCUS EM MFA
+  // ==========================================
   useEffect(() => {
     if (showMFA) {
-      setFocus('totpCode')
+      setTimeout(() => setFocus('totpCode'), 100)
     }
   }, [showMFA, setFocus])
 
-  // Submit handler
+  // ==========================================
+  // SUBMIT HANDLER
+  // ==========================================
   const onSubmit = async (data) => {
     setLoginError('')
     setIsSubmitting(true)
+    setAttemptCount(prev => prev + 1)
+
+    console.log('[Login] Tentativa de login #', attemptCount + 1)
+    console.log('[Login] Email:', data.email)
+    console.log('[Login] MFA Mode:', showMFA)
 
     try {
       const credentials = {
-        username: data.email, // Backend pode aceitar email como username
+        username: data.email,
         password: data.password,
       }
 
       let result
 
+      // ==========================================
+      // LOGIN COM MFA TOTP
+      // ==========================================
       if (showMFA) {
-        // Login com MFA
+        console.log('[Login] Tentando login com MFA TOTP')
+        
         result = await loginWithMFA(credentials, data.totpCode)
-      } else {
-        // Login normal
-        result = await login(credentials)
+        
+        if (result.success) {
+          console.log('[Login] ✅ Login com MFA bem-sucedido')
+          // Reset form
+          reset()
+          // Navegação será feita pelo useEffect
+        } else {
+          // Erro no MFA
+          console.error('[Login] ❌ Erro no login com MFA:', result.error)
+          
+          setLoginError(
+            result.error || 
+            'Código MFA inválido. Verifique e tente novamente.'
+          )
+          
+          // Limpar apenas o campo MFA
+          reset({ ...getValues(), totpCode: '' })
+          setFocus('totpCode')
+        }
+        
+        return
       }
 
+      // ==========================================
+      // LOGIN NORMAL (SEM MFA)
+      // ==========================================
+      console.log('[Login] Tentando login normal')
+      
+      result = await login(credentials)
+      
       if (result.success) {
-        console.log('[Login] Sucesso, redirecionando...')
-        // Navegação será feita pelo useEffect
+        console.log('[Login] ✅ Login normal bem-sucedido')
+        
+        const user = result.user
+        setUserRole(user.role)
+        
+        // Verificar se ROOT/GESTOR precisa de MFA
+        if (['ROOT', 'GESTOR'].includes(user.role)) {
+          if (!user.mfa_enabled && !user.totp_configured) {
+            console.warn('[Login] ⚠️  MFA obrigatório não configurado para', user.role)
+            
+            setRequiresMFASetup(true)
+            setLoginError(
+              `MFA é obrigatório para usuários ${user.role}. ` +
+              `Configure a autenticação de dois fatores para continuar.`
+            )
+            
+            return
+          }
+        }
+        
+        // Login completo - navegação pelo useEffect
+        reset()
+        
       } else if (result.needsMFA) {
-        // Precisa de MFA
+        // ==========================================
+        // MFA NECESSÁRIO
+        // ==========================================
+        console.log('[Login] 🔐 MFA necessário')
+        
         setShowMFA(true)
-        setLoginError('Digite o código MFA do seu aplicativo autenticador')
+        setUserRole(result.role || result.user?.role || 'UNKNOWN')
+        setLoginError(
+          'Digite o código MFA de 6 dígitos do seu aplicativo autenticador.'
+        )
+        
+      } else if (result.error?.includes('MFA não configurado')) {
+        // ==========================================
+        // MFA NÃO CONFIGURADO (ROOT/GESTOR)
+        // ==========================================
+        console.warn('[Login] ⚠️  MFA não configurado')
+        
+        setRequiresMFASetup(true)
+        setUserRole(result.role || 'UNKNOWN')
+        setLoginError(
+          'Você precisa configurar MFA antes de acessar o sistema. ' +
+          'Clique no botão abaixo para configurar.'
+        )
+        
       } else {
-        // Erro no login
-        setLoginError(result.error || 'Erro ao fazer login')
+        // ==========================================
+        // ERRO GENÉRICO
+        // ==========================================
+        console.error('[Login] ❌ Erro no login:', result.error)
+        
+        // Detectar tipo de erro
+        const errorMessage = result.error || 'Erro ao fazer login'
+        
+        if (errorMessage.includes('Username ou password incorretos') ||
+            errorMessage.includes('credenciais inválidas') ||
+            errorMessage.includes('Unauthorized')) {
+          setLoginError(
+            '❌ Credenciais inválidas. Verifique seu email e senha.'
+          )
+        } else if (errorMessage.includes('timeout')) {
+          setLoginError(
+            '⏱️ Tempo de conexão esgotado. Verifique sua internet e tente novamente.'
+          )
+        } else if (errorMessage.includes('Network Error')) {
+          setLoginError(
+            '🌐 Erro de conexão. Verifique sua internet e tente novamente.'
+          )
+        } else if (errorMessage.includes('403')) {
+          setLoginError(
+            '🚫 Acesso negado. Sua conta pode estar bloqueada.'
+          )
+        } else if (errorMessage.includes('500')) {
+          setLoginError(
+            '🔧 Erro no servidor. Tente novamente em alguns instantes.'
+          )
+        } else {
+          setLoginError(errorMessage)
+        }
+        
+        // Reset senha após 3 tentativas falhas
+        if (attemptCount >= 2) {
+          console.warn('[Login] ⚠️  Múltiplas tentativas falhas')
+          reset()
+        }
       }
+      
     } catch (error) {
-      console.error('[Login] Erro:', error)
-      setLoginError('Erro inesperado. Tente novamente.')
+      console.error('[Login] ❌ Erro inesperado:', error)
+      
+      // Tratamento de erro de rede
+      if (error.message?.includes('Network Error')) {
+        setLoginError(
+          '🌐 Erro de conexão com o servidor. Verifique sua internet.'
+        )
+      } else if (error.code === 'ECONNABORTED') {
+        setLoginError(
+          '⏱️ Tempo de conexão esgotado. Tente novamente.'
+        )
+      } else {
+        setLoginError(
+          '❌ Erro inesperado. Tente novamente ou contate o suporte.'
+        )
+      }
+      
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // Loading inicial
-  if (loading) {
+  // ==========================================
+  // SETUP MFA
+  // ==========================================
+  const handleSetupMFA = async () => {
+    console.log('[Login] Redirecionando para setup MFA')
+    
+    // Tentar login novamente para obter token temporário
+    try {
+      const credentials = {
+        username: getValues('email'),
+        password: getValues('password'),
+      }
+      
+      const result = await login(credentials)
+      
+      if (result.success || result.token) {
+        navigate('/mfa/setup', { 
+          state: { 
+            fromLogin: true,
+            role: userRole,
+            email: getValues('email')
+          } 
+        })
+      } else {
+        setLoginError(
+          'Erro ao preparar setup MFA. Tente fazer login novamente.'
+        )
+      }
+    } catch (error) {
+      console.error('[Login] Erro ao preparar MFA setup:', error)
+      setLoginError(
+        'Erro ao configurar MFA. Entre em contato com o suporte.'
+      )
+    }
+  }
+
+  // ==========================================
+  // LOADING STATE
+  // ==========================================
+  if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50">
         <div className="text-center">
           <div className="spinner w-16 h-16 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando...</p>
+          <p className="text-gray-600">Verificando autenticação...</p>
         </div>
       </div>
     )
   }
 
+  // ==========================================
+  // RENDER
+  // ==========================================
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50 px-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-primary-100 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-primary-100 rounded-full mb-4 animate-pulse-slow">
             <span className="text-6xl">🔐</span>
           </div>
           <h1 className="text-4xl font-bold mb-2">
             <span className="gradient-text">Login</span>
           </h1>
           <p className="text-gray-600">
-            Acesse o sistema Sentinela
+            Sistema Sentinela - Acesso Seguro
           </p>
         </div>
 
         {/* Login Card */}
         <div className="card card-body">
+          {/* ==========================================
+              MFA SETUP REQUIRED ALERT
+              ========================================== */}
+          {requiresMFASetup && (
+            <div className="mb-6 p-4 bg-warning-50 border-2 border-warning-400 rounded-lg animate-slide-in">
+              <div className="flex items-start space-x-3">
+                <span className="text-3xl">🔒</span>
+                <div className="flex-1">
+                  <h3 className="font-bold text-warning-800 mb-2">
+                    ⚠️ MFA Obrigatório para {userRole}
+                  </h3>
+                  <p className="text-sm text-warning-700 mb-3">
+                    Por questões de segurança, usuários <strong>{userRole}</strong> devem 
+                    configurar autenticação de dois fatores (MFA) antes de acessar o sistema.
+                  </p>
+                  <button
+                    onClick={handleSetupMFA}
+                    className="btn-primary w-full"
+                  >
+                    🔐 Configurar MFA Agora
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ==========================================
+              ROLE BADGE (quando em modo MFA)
+              ========================================== */}
+          {userRole && showMFA && (
+            <div className="mb-4 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+              <p className="text-sm text-primary-800 text-center">
+                Logando como: <span className="font-bold">{userRole}</span>
+              </p>
+            </div>
+          )}
+
+          {/* ==========================================
+              LOGIN FORM
+              ========================================== */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Email Input */}
             <div>
@@ -144,14 +372,15 @@ function Login() {
                     message: 'Email inválido',
                   },
                 })}
-                className={`form-input ${errors.email ? 'border-danger-500 focus:ring-danger-500' : ''}`}
-                placeholder="seu@email.com"
-                disabled={isSubmitting}
+                className={`form-input ${errors.email ? 'border-danger-500 ring-danger-500' : ''}`}
+                placeholder="admin@sentinela.com"
+                disabled={isSubmitting || requiresMFASetup}
                 autoComplete="email"
-                autoFocus
+                autoFocus={!showMFA}
               />
               {errors.email && (
-                <p className="form-error mt-1">
+                <p className="form-error mt-1 flex items-center">
+                  <span className="mr-1">⚠️</span>
                   {errors.email.message}
                 </p>
               )}
@@ -172,157 +401,186 @@ function Login() {
                     message: 'Senha deve ter no mínimo 6 caracteres',
                   },
                 })}
-                className={`form-input ${errors.password ? 'border-danger-500 focus:ring-danger-500' : ''}`}
+                className={`form-input ${errors.password ? 'border-danger-500 ring-danger-500' : ''}`}
                 placeholder="••••••••"
-                disabled={isSubmitting}
+                disabled={isSubmitting || requiresMFASetup}
                 autoComplete="current-password"
               />
               {errors.password && (
-                <p className="form-error mt-1">
+                <p className="form-error mt-1 flex items-center">
+                  <span className="mr-1">⚠️</span>
                   {errors.password.message}
                 </p>
               )}
             </div>
 
-            {/* MFA Input (conditional) */}
-            {showMFA && (
+            {/* MFA TOTP Input */}
+            {showMFA && !requiresMFASetup && (
               <div className="animate-slide-in">
                 <label htmlFor="totpCode" className="form-label">
-                  Código MFA (6 dígitos) <span className="text-danger-500">*</span>
+                  Código MFA TOTP (6 dígitos) <span className="text-danger-500">*</span>
                 </label>
                 <input
                   id="totpCode"
                   type="text"
+                  inputMode="numeric"
                   {...register('totpCode', {
                     required: showMFA ? 'Código MFA é obrigatório' : false,
                     pattern: {
                       value: /^\d{6}$/,
                       message: 'Código deve ter exatamente 6 dígitos',
                     },
-                    maxLength: {
-                      value: 6,
-                      message: 'Código deve ter 6 dígitos',
-                    },
+                    maxLength: 6,
                   })}
-                  className={`form-input text-center text-2xl tracking-widest ${
-                    errors.totpCode ? 'border-danger-500' : ''
+                  className={`form-input text-center text-3xl tracking-widest font-bold ${
+                    errors.totpCode ? 'border-danger-500 ring-danger-500' : ''
                   }`}
                   placeholder="000000"
                   maxLength="6"
                   disabled={isSubmitting}
                   autoComplete="one-time-code"
+                  autoFocus
                 />
                 {errors.totpCode && (
-                  <p className="form-error mt-1">
+                  <p className="form-error mt-1 flex items-center">
+                    <span className="mr-1">⚠️</span>
                     {errors.totpCode.message}
                   </p>
                 )}
-                <p className="mt-2 text-xs text-gray-500 flex items-center">
-                  <span className="mr-1">📱</span>
-                  Abra seu aplicativo autenticador (Google Authenticator, Authy, etc)
-                </p>
+                
+                {/* MFA Info Box */}
+                <div className="mt-3 p-3 bg-info-50 border border-info-200 rounded-lg">
+                  <p className="text-xs text-info-800 mb-2 font-semibold flex items-center">
+                    <span className="mr-1">📱</span>
+                    Onde encontrar o código?
+                  </p>
+                  <ul className="text-xs text-info-700 space-y-1">
+                    <li>• Abra seu aplicativo autenticador</li>
+                    <li>• Encontre "Sentinela" ou "{userRole}"</li>
+                    <li>• Digite o código de 6 dígitos</li>
+                  </ul>
+                </div>
               </div>
             )}
 
             {/* Remember Me */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  {...register('rememberMe')}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                  disabled={isSubmitting}
-                />
-                <span className="ml-2 text-sm text-gray-700">
-                  Lembrar-me
-                </span>
-              </label>
-              
-              <Link
-                to="/forgot-password"
-                className="text-sm text-primary-600 hover:text-primary-700"
-              >
-                Esqueceu a senha?
-              </Link>
-            </div>
+            {!showMFA && !requiresMFASetup && (
+              <div className="flex items-center justify-between">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    {...register('rememberMe')}
+                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                    disabled={isSubmitting}
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Lembrar-me</span>
+                </label>
+                
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-primary-600 hover:text-primary-700 transition"
+                >
+                  Esqueceu a senha?
+                </Link>
+              </div>
+            )}
 
-            {/* Error Message */}
-            {loginError && (
-              <div className="p-4 bg-danger-50 border-l-4 border-danger-500 rounded">
+            {/* ==========================================
+                ERROR MESSAGE BOX
+                ========================================== */}
+            {loginError && !requiresMFASetup && (
+              <div className="p-4 bg-danger-50 border-l-4 border-danger-500 rounded-lg animate-slide-in">
                 <div className="flex items-start">
-                  <span className="text-danger-500 mr-2 text-xl">⚠️</span>
+                  <span className="text-danger-500 mr-3 text-2xl">
+                    {loginError.includes('❌') || loginError.includes('⚠️') ? '' : '⚠️'}
+                  </span>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-danger-800">
+                    <p className="text-sm font-semibold text-danger-800 mb-1">
                       Erro no Login
                     </p>
-                    <p className="text-sm text-danger-700 mt-1">
+                    <p className="text-sm text-danger-700">
                       {loginError}
                     </p>
+                    {attemptCount >= 3 && (
+                      <p className="text-xs text-danger-600 mt-2">
+                        💡 Dica: Verifique se o CAPS LOCK está ativado
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
             {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full btn-primary py-3 text-base font-semibold flex items-center justify-center space-x-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="spinner w-5 h-5 border-white"></span>
-                  <span>Entrando...</span>
-                </>
-              ) : (
-                <>
-                  <span>🔐</span>
-                  <span>Entrar</span>
-                </>
-              )}
-            </button>
+            {!requiresMFASetup && (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full btn-primary py-3 text-base font-semibold transition-all"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center space-x-2">
+                    <span className="spinner w-5 h-5 border-white"></span>
+                    <span>Verificando...</span>
+                  </span>
+                ) : showMFA ? (
+                  <span className="flex items-center justify-center space-x-2">
+                    <span>🔐</span>
+                    <span>Verificar Código MFA</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center space-x-2">
+                    <span>🔓</span>
+                    <span>Entrar</span>
+                  </span>
+                )}
+              </button>
+            )}
           </form>
 
           {/* Footer Links */}
           <div className="mt-6 text-center space-y-2">
             <Link
               to="/"
-              className="block text-sm text-gray-600 hover:text-primary-600"
+              className="block text-sm text-gray-600 hover:text-primary-600 transition"
             >
               ← Voltar para Home
             </Link>
-            <p className="text-xs text-gray-500">
-              Não tem uma conta?{' '}
-              <Link to="/register" className="text-primary-600 hover:text-primary-700">
-                Registrar-se
-              </Link>
-            </p>
           </div>
         </div>
 
-        {/* Info Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-xs text-gray-500">
-            🛡️ Sistema Sentinela
+        {/* Security Notice */}
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200 text-center">
+          <p className="text-xs text-gray-600 mb-2 flex items-center justify-center">
+            <span className="mr-1">🛡️</span>
+            <strong>Segurança Reforçada</strong>
           </p>
+          <p className="text-xs text-gray-500">
+            Usuários ROOT e GESTOR requerem MFA obrigatório
+          </p>
+        </div>
+
+        {/* Footer Info */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-500">Sistema Sentinela</p>
           <p className="text-xs text-gray-400 mt-1">
             adrisa007/sentinela | Repository ID: 1112237272
           </p>
-          <div className="mt-4 flex justify-center space-x-4 text-xs text-gray-400">
+          <div className="mt-3 flex justify-center space-x-4 text-xs">
             <a
               href="https://web-production-8355.up.railway.app/docs"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-primary-600"
+              className="text-gray-400 hover:text-primary-600 transition"
             >
               📚 API Docs
             </a>
-            <span>•</span>
+            <span className="text-gray-300">•</span>
             <a
               href="https://github.com/adrisa007/sentinela"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-primary-600"
+              className="text-gray-400 hover:text-primary-600 transition"
             >
               🐙 GitHub
             </a>
