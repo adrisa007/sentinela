@@ -1,50 +1,81 @@
-import { Link } from 'react-router-dom'
-import { Shield, Activity, LayoutDashboard } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '@contexts/AuthContext'
 
 function Layout({ children }) {
+  const { isAuthenticated, user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
+
+  const isGestorOrRoot = user && ['ROOT', 'GESTOR'].includes(user.role)
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
-      {/* Header */}
-      <header className="bg-white shadow-md">
+    <div className="min-h-screen flex flex-col">
+      <header className="bg-white shadow">
         <nav className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex justify-between items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <Shield className="w-8 h-8 text-primary-600" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
-                Sentinela
-              </span>
+              <span className="text-3xl">🛡️</span>
+              <span className="text-2xl font-bold text-primary-600">Sentinela</span>
             </Link>
-            
+
             <div className="flex items-center space-x-6">
-              <Link to="/" className="flex items-center space-x-1 hover:text-primary-600 transition-colors">
-                <Shield className="w-5 h-5" />
-                <span>Home</span>
+              <Link to="/" className="hover:text-primary-600 transition">
+                🏠 Home
               </Link>
-              <Link to="/dashboard" className="flex items-center space-x-1 hover:text-primary-600 transition-colors">
-                <LayoutDashboard className="w-5 h-5" />
-                <span>Dashboard</span>
+              {isAuthenticated && (
+                <>
+                  <Link to="/dashboard" className="hover:text-primary-600 transition">
+                    📊 Dashboard
+                  </Link>
+                  {isGestorOrRoot && (
+                    <Link to="/dashboard/gestor" className="hover:text-primary-600 transition">
+                      📈 Dashboard Gestor
+                    </Link>
+                  )}
+                </>
+              )}
+              <Link to="/health" className="hover:text-primary-600 transition">
+                💚 Health
               </Link>
-              <Link to="/health" className="flex items-center space-x-1 hover:text-primary-600 transition-colors">
-                <Activity className="w-5 h-5" />
-                <span>Health</span>
-              </Link>
+
+              {isAuthenticated ? (
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-600">
+                    👤 {user?.username}
+                    {user?.role && (
+                      <span className="ml-2 badge badge-success text-xs">
+                        {user.role}
+                      </span>
+                    )}
+                  </span>
+                  <button onClick={handleLogout} className="btn-ghost text-sm">
+                    🚪 Sair
+                  </button>
+                </div>
+              ) : (
+                <Link to="/login" className="btn-primary">
+                  🔐 Login
+                </Link>
+              )}
             </div>
           </div>
         </nav>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="flex-1 container mx-auto px-4 py-8">
         {children}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white mt-16">
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-lg font-semibold mb-2">🛡️ Sentinela</p>
-          <p className="text-gray-400">Vigilância total, risco zero.</p>
+      <footer className="bg-gray-900 text-white py-8 mt-auto">
+        <div className="container mx-auto text-center">
+          <p className="text-lg font-semibold">🛡️ Sentinela</p>
+          <p className="text-gray-400 mt-2">Vigilância total, risco zero.</p>
           <p className="text-gray-500 text-sm mt-4">
-            Repository ID: 1112237272 | adrisa007/sentinela
+            adrisa007/sentinela | Repository ID: 1112237272
           </p>
         </div>
       </footer>
