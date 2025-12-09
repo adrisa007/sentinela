@@ -3,25 +3,30 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 /**
- * Vite Configuration para adrisa007/sentinela (ID: 1112237272)
+ * Vite Configuration - adrisa007/sentinela (ID: 1112237272)
  * https://vitejs.dev/config/
  */
 export default defineConfig({
   plugins: [
     react({
+      // React 18 automatic JSX runtime
+      jsxRuntime: 'automatic',
       // Fast Refresh
       fastRefresh: true,
-      // Babel plugins para otimização
+      // Babel config
       babel: {
         plugins: [
           // Remover PropTypes em produção
-          ['transform-react-remove-prop-types', { removeImport: true }],
-        ],
+          process.env.NODE_ENV === 'production' && [
+            'transform-react-remove-prop-types',
+            { removeImport: true }
+          ]
+        ].filter(Boolean),
       },
     }),
   ],
 
-  // Path aliases para imports mais limpos
+  // Path aliases
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -34,63 +39,59 @@ export default defineConfig({
     },
   },
 
-  // Configuração do servidor de desenvolvimento
+  // Dev server
   server: {
     port: 3000,
-    host: true, // Permite acesso via rede
-    open: true, // Abre navegador automaticamente
-    strictPort: false, // Tenta outra porta se 3000 estiver ocupada
+    host: true,
+    open: false,
+    strictPort: false,
+    cors: true,
     
     // Proxy para API backend
     proxy: {
       '/api': {
-        target: 'https://web-production-8355.up.railway.app',
+        target: process.env.VITE_API_URL || 'https://web-production-8355.up.railway.app',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''),
-        // Log de requisições proxy
         configure: (proxy, options) => {
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('[Proxy]', req.method, req.url, '→', options.target + req.url)
+          proxy.on('proxyReq', (proxyReq, req) => {
+            console.log('[Proxy]', req.method, req.url)
           })
         },
       },
     },
 
-    // CORS headers
-    cors: true,
-
-    // HMR (Hot Module Replacement)
+    // HMR
     hmr: {
       overlay: true,
+      timeout: 30000,
     },
 
-    // Watch options
+    // Watch
     watch: {
-      usePolling: true, // Necessário em alguns containers/WSL
+      usePolling: process.env.VITE_USE_POLLING === 'true',
     },
   },
 
-  // Configuração de build para produção
+  // Build
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    sourcemap: true, // Gerar sourcemaps para debug
-    minify: 'terser', // Minificação com terser
+    sourcemap: true,
+    minify: 'terser',
     
-    // Opções do terser
     terserOptions: {
       compress: {
-        drop_console: true, // Remove console.log em produção
+        drop_console: process.env.NODE_ENV === 'production',
         drop_debugger: true,
       },
     },
 
-    // Chunks estratégicos para melhor cache
+    // Rollup options
     rollupOptions: {
       output: {
         manualChunks: {
-          // Vendor chunks
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'chart-vendor': ['chart.js', 'react-chartjs-2'],
           'form-vendor': ['react-hook-form'],
@@ -98,14 +99,11 @@ export default defineConfig({
       },
     },
 
-    // Tamanho máximo de chunk (500kb)
-    chunkSizeWarningLimit: 500,
-
-    // Assets inline (base64) até 4kb
+    chunkSizeWarningLimit: 1000,
     assetsInlineLimit: 4096,
   },
 
-  // Otimizações de dependências
+  // Optimize deps
   optimizeDeps: {
     include: [
       'react',
@@ -118,21 +116,16 @@ export default defineConfig({
     ],
   },
 
-  // Variáveis de ambiente
-  envPrefix: 'VITE_',
-
-  // Preview (após build)
+  // Preview
   preview: {
     port: 4173,
     host: true,
     strictPort: false,
   },
 
-  // Base URL (para deploy)
+  // Base
   base: '/',
 
-  // CSS
-  css: {
-    devSourcemap: true,
-  },
+  // Env prefix
+  envPrefix: 'VITE_',
 })

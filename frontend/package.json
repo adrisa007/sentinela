@@ -1,31 +1,56 @@
 {
   "name": "sentinela-frontend",
+  "private": true,
   "version": "1.0.0",
-  "description": "Frontend React para adrisa007/sentinela (ID: 1112237272)",
+  "description": "Frontend React 18 para adrisa007/sentinela (ID: 1112237272)",
   "type": "module",
+  "author": "Adriano",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adrisa007/sentinela.git"
+  },
+  "keywords": [
+    "react",
+    "vite",
+    "tailwind",
+    "sentinela",
+    "monitoring",
+    "security"
+  ],
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0 --port $PORT",
-    "lint": "eslint . --ext js,jsx"
+    "preview": "vite preview --host 0.0.0.0 --port ${PORT:-4173}",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "format": "prettier --write \"src/**/*.{js,jsx,css,md}\""
   },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.21.1",
-    "react-hook-form": "^7.49.2",
-    "axios": "^1.6.2",
-    "chart.js": "^4.4.0",
-    "react-chartjs-2": "^5.2.0"
+    "react-router-dom": "^6.21.3",
+    "react-hook-form": "^7.50.0",
+    "axios": "^1.6.7",
+    "chart.js": "^4.4.1",
+    "react-chartjs-2": "^5.2.0",
+    "date-fns": "^3.3.1"
   },
   "devDependencies": {
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.0.8",
-    "tailwindcss": "^3.4.0",
-    "postcss": "^8.4.32",
-    "autoprefixer": "^10.4.16",
-    "eslint": "^8.55.0",
+    "vite": "^5.1.0",
+    "tailwindcss": "^3.4.1",
+    "postcss": "^8.4.35",
+    "autoprefixer": "^10.4.17",
+    "eslint": "^8.56.0",
     "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^4.6.0"
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "prettier": "^3.2.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
