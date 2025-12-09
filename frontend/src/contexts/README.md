@@ -1,41 +1,30 @@
-# AuthContext - adrisa007/sentinela (ID: 1112237272)
+# Contexts - adrisa007/sentinela (ID: 1112237272)
 
-## Features
+React Contexts para gerenciamento de estado global.
 
-- ✅ Login/Logout com JWT
-- ✅ MFA (TOTP) obrigatório para ROOT e GESTOR
-- ✅ Persistência de sessão (localStorage)
-- ✅ Integração automática com axios
-- ✅ Refresh de token
-- ✅ Role-based access control
+## 📦 Contexts Disponíveis
 
-## Uso
+### 1. AuthContext
+Gerencia autenticação, login, logout e sessão.
 
 ```jsx
 import { useAuth } from '@contexts/AuthContext'
 
 function MyComponent() {
-  const { 
-    user, 
-    isAuthenticated, 
-    login, 
-    logout,
-    mfaRequired,
-    setupMFA 
-  } = useAuth()
-
-  // Login
-  const handleLogin = async () => {
-    const result = await login({ username, password })
-    if (result.needsMFA) {
-      // Mostrar campo de MFA
-    }
-  }
-
-  // Verificar role
-  if (user?.role === 'ROOT') {
-    // Acesso administrativo
-  }
-
-  return <div>{user?.username}</div>
+  const { user, isAuthenticated, login, logout } = useAuth()
+  
+  return (
+    <div>
+      {isAuthenticated ? (
+        <div>
+          <p>Olá, {user?.username}</p>
+          <button onClick={logout}>Sair</button>
+        </div>
+      ) : (
+        <button onClick={() => login({ username, password })}>
+          Login
+        </button>
+      )}
+    </div>
+  )
 }
