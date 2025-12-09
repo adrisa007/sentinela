@@ -20,7 +20,10 @@ app = FastAPI(
     🛡️ **Sentinela** - Sistema de Autenticação e Controle de Acesso
     
     **Validações de Segurança:**
-    - ✅ JWT (JSON Web Tokens)
+    - ✅ JWT (JSON Web Tokens,
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc")
     - ✅ MFA TOTP - Obrigatório para ROOT/GESTOR
     - ✅ RBAC (Role-Based Access Control)
     - ✅ Validação de Entidade Ativa
