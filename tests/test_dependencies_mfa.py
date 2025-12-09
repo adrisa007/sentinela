@@ -72,7 +72,7 @@ class TestMFARequirement:
         token = create_access_token(data={"sub": "1"})
         payload = jwt.decode(
             token,
-            settings.JWT_SECRET_KEY,
+            settings.SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM]
         )
         
@@ -84,7 +84,7 @@ class TestMFARequirement:
         token = create_access_token(data={"sub": "1", "totp": "123456"})
         payload = jwt.decode(
             token,
-            settings.JWT_SECRET_KEY,
+            settings.SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM]
         )
         
