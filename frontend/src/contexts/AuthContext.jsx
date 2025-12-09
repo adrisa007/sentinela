@@ -2,18 +2,15 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import axios from 'axios'
 
 /**
- * AuthContext com MFA TOTP - adrisa007/sentinela (ID: 1112237272)
+ * AuthContext com Persistência JWT - adrisa007/sentinela (ID: 1112237272)
  * 
- * Features:
- * - Login/Logout
- * - JWT Token Management
- * - MFA TOTP (Setup, Verify, Disable)
- * - QR Code para Google Authenticator
- * - Backup Codes
- * - Session Persistence
- * - Role-based Access Control
- * 
- * Backend: https://web-production-8355.up.railway.app
+ * Persistência completa:
+ * - JWT Token em localStorage
+ * - User data em localStorage
+ * - Auto-restore na inicialização
+ * - Token refresh automático
+ * - Expiração de token
+ * - Clear on logout
  */
 
 const AuthContext = createContext(null)
@@ -28,6 +25,14 @@ export const useAuth = () => {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://web-production-8355.up.railway.app'
 
+// Keys do localStorage
+const STORAGE_KEYS = {
+  TOKEN: 'sentinela_token',
+  USER: 'sentinela_user',
+  TOKEN_EXPIRY: 'sentinela_token_expiry',
+  REFRESH_TOKEN: 'sentinela_refresh_token',
+}
+
 // Axios instance
 const authAPI = axios.create({
   baseURL: API_BASE_URL,
@@ -38,11 +43,10 @@ const authAPI = axios.create({
 // Request interceptor
 authAPI.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem(STORAGE_KEYS.TOKEN)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    console.log(`[Auth API] ${config.method?.toUpperCase()} ${config.url}`)
     return config
   },
   (error) => Promise.reject(error)
@@ -50,61 +54,141 @@ authAPI.interceptors.request.use(
 
 // Response interceptor
 authAPI.interceptors.response.use(
-  (response) => {
-    console.log(`[Auth API] ${response.status} ${response.config.url}`)
-    return response
-  },
+  (response) => response,
   (error) => {
-    console.error('[Auth API] Error:', error.response?.status, error.message)
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      // Token expirado ou inválido
+      clearStorage()
       window.location.href = '/login'
     }
     return Promise.reject(error)
   }
 )
 
+// ==========================================
+// STORAGE HELPERS
+// ==========================================
+
+const saveToStorage = (key, value) => {
+  try {
+    localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value))
+    console.log(`[Storage] Saved: ${key}`)
+  } catch (error) {
+    console.error(`[Storage] Error saving ${key}:`, error)
+  }
+}
+
+const getFromStorage = (key) => {
+  try {
+    const value = localStorage.getItem(key)
+    if (!value) return null
+    
+    // Tentar parsear JSON, se falhar retornar string
+    try {
+      return JSON.parse(value)
+    } catch {
+      return value
+    }
+  } catch (error) {
+    console.error(`[Storage] Error reading ${key}:`, error)
+    return null
+  }
+}
+
+const removeFromStorage = (key) => {
+  try {
+    localStorage.removeItem(key)
+    console.log(`[Storage] Removed: ${key}`)
+  } catch (error) {
+    console.error(`[Storage] Error removing ${key}:`, error)
+  }
+}
+
+const clearStorage = () => {
+  Object.values(STORAGE_KEYS).forEach(key => removeFromStorage(key))
+  console.log('[Storage] All cleared')
+}
+
+// Verificar se token está expirado
+const isTokenExpired = () => {
+  const expiry = getFromStorage(STORAGE_KEYS.TOKEN_EXPIRY)
+  if (!expiry) return true
+  
+  const now = Date.now()
+  const isExpired = now > expiry
+  
+  if (isExpired) {
+    console.warn('[Auth] Token expirado')
+  }
+  
+  return isExpired
+}
+
+// Calcular expiry (24 horas por padrão)
+const calculateExpiry = (expiresIn = 24 * 60 * 60 * 1000) => {
+  return Date.now() + expiresIn
+}
+
+// ==========================================
+// PROVIDER COMPONENT
+// ==========================================
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  
-  // MFA State
   const [mfaRequired, setMfaRequired] = useState(false)
   const [mfaSetupData, setMfaSetupData] = useState(null)
   const [showMfaSetup, setShowMfaSetup] = useState(false)
 
   // ==========================================
-  // INICIALIZAÇÃO
+  // INICIALIZAÇÃO - Restaurar do localStorage
   // ==========================================
   useEffect(() => {
     const initAuth = async () => {
+      console.log('[Auth] Inicializando...')
+      
       try {
-        const storedToken = localStorage.getItem('token')
-        const storedUser = localStorage.getItem('user')
+        const storedToken = getFromStorage(STORAGE_KEYS.TOKEN)
+        const storedUser = getFromStorage(STORAGE_KEYS.USER)
 
-        if (storedToken && storedUser) {
-          setToken(storedToken)
-          const userData = JSON.parse(storedUser)
-          setUser(userData)
-          setIsAuthenticated(true)
+        if (!storedToken || !storedUser) {
+          console.log('[Auth] Nenhuma sessão encontrada')
+          setLoading(false)
+          return
+        }
+
+        // Verificar expiração
+        if (isTokenExpired()) {
+          console.warn('[Auth] Token expirado, limpando sessão')
+          clearStorage()
+          setLoading(false)
+          return
+        }
+
+        console.log('[Auth] Sessão restaurada do localStorage')
+        
+        setToken(storedToken)
+        setUser(storedUser)
+        setIsAuthenticated(true)
+        
+        // Validar token com backend
+        try {
+          const { data } = await authAPI.get('/auth/me')
           
-          console.log('[Auth] Sessão restaurada')
+          // Atualizar dados do usuário
+          setUser(data)
+          saveToStorage(STORAGE_KEYS.USER, data)
           
-          // Validar token
-          try {
-            const { data } = await authAPI.get('/auth/me')
-            setUser(data)
-            localStorage.setItem('user', JSON.stringify(data))
-          } catch (error) {
-            console.warn('[Auth] Token inválido')
-            handleLogout()
-          }
+          console.log('[Auth] Token validado com sucesso')
+        } catch (error) {
+          console.warn('[Auth] Token inválido no backend, fazendo logout')
+          handleLogout()
         }
       } catch (error) {
         console.error('[Auth] Erro ao restaurar sessão:', error)
+        clearStorage()
       } finally {
         setLoading(false)
       }
@@ -113,7 +197,7 @@ export const AuthProvider = ({ children }) => {
     initAuth()
   }, [])
 
-  // Verificar se MFA é obrigatório
+  // Verificar MFA obrigatório
   useEffect(() => {
     if (user) {
       const needsMFA = ['ROOT', 'GESTOR'].includes(user.role)
@@ -123,23 +207,22 @@ export const AuthProvider = ({ children }) => {
         setMfaRequired(true)
         setShowMfaSetup(true)
         console.warn(`[Auth] MFA obrigatório para ${user.role}`)
-      } else {
-        setMfaRequired(false)
-        setShowMfaSetup(false)
       }
     }
   }, [user])
 
-  const handleLogout = () => {
+  // ==========================================
+  // LOGOUT HELPER
+  // ==========================================
+  const handleLogout = useCallback(() => {
     setUser(null)
     setToken(null)
     setIsAuthenticated(false)
     setMfaRequired(false)
     setMfaSetupData(null)
     setShowMfaSetup(false)
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-  }
+    clearStorage()
+  }, [])
 
   // ==========================================
   // LOGIN
@@ -158,14 +241,22 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Token não recebido')
       }
 
+      // Salvar no estado
       setToken(data.token)
       setUser(data.user)
       setIsAuthenticated(true)
       
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      // Persistir no localStorage
+      saveToStorage(STORAGE_KEYS.TOKEN, data.token)
+      saveToStorage(STORAGE_KEYS.USER, data.user)
+      saveToStorage(STORAGE_KEYS.TOKEN_EXPIRY, calculateExpiry())
       
-      console.log('[Auth] Login bem-sucedido')
+      // Salvar refresh token se disponível
+      if (data.refresh_token) {
+        saveToStorage(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token)
+      }
+      
+      console.log('[Auth] Login bem-sucedido e persistido')
       
       return { success: true, user: data.user }
     } catch (error) {
@@ -173,14 +264,9 @@ export const AuthProvider = ({ children }) => {
       
       const errorMessage = error.response?.data?.detail || 'Erro ao fazer login'
       
-      // Verificar se precisa MFA
       if (error.response?.status === 403 && errorMessage.includes('MFA')) {
         setMfaRequired(true)
-        return {
-          success: false,
-          needsMFA: true,
-          error: 'Código MFA necessário',
-        }
+        return { success: false, needsMFA: true, error: 'Código MFA necessário' }
       }
       
       return { success: false, error: errorMessage }
@@ -195,7 +281,6 @@ export const AuthProvider = ({ children }) => {
   const loginWithMFA = useCallback(async (credentials, totpCode) => {
     try {
       setLoading(true)
-      console.log('[Auth] Login com MFA')
       
       const { data } = await authAPI.post('/auth/login', {
         username: credentials.username,
@@ -212,10 +297,16 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true)
       setMfaRequired(false)
       
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      // Persistir
+      saveToStorage(STORAGE_KEYS.TOKEN, data.token)
+      saveToStorage(STORAGE_KEYS.USER, data.user)
+      saveToStorage(STORAGE_KEYS.TOKEN_EXPIRY, calculateExpiry())
       
-      console.log('[Auth] Login com MFA bem-sucedido')
+      if (data.refresh_token) {
+        saveToStorage(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token)
+      }
+      
+      console.log('[Auth] Login com MFA bem-sucedido e persistido')
       
       return { success: true, user: data.user }
     } catch (error) {
@@ -234,7 +325,7 @@ export const AuthProvider = ({ children }) => {
   // ==========================================
   const logout = useCallback(async () => {
     try {
-      console.log('[Auth] Fazendo logout')
+      console.log('[Auth] Fazendo logout...')
       
       try {
         await authAPI.post('/auth/logout')
@@ -243,19 +334,37 @@ export const AuthProvider = ({ children }) => {
       }
       
       handleLogout()
-      console.log('[Auth] Logout concluído')
+      console.log('[Auth] Logout concluído e storage limpo')
     } catch (error) {
       console.error('[Auth] Erro no logout:', error)
+    }
+  }, [handleLogout])
+
+  // ==========================================
+  // REFRESH USER
+  // ==========================================
+  const refreshUser = useCallback(async () => {
+    try {
+      const { data } = await authAPI.get('/auth/me')
+      
+      setUser(data)
+      saveToStorage(STORAGE_KEYS.USER, data)
+      
+      console.log('[Auth] Usuário atualizado e persistido')
+      
+      return { success: true, user: data }
+    } catch (error) {
+      console.error('[Auth] Erro ao atualizar usuário:', error)
+      return { success: false, error: error.message }
     }
   }, [])
 
   // ==========================================
-  // MFA TOTP - SETUP
+  // MFA SETUP
   // ==========================================
   const setupMFA = useCallback(async () => {
     try {
       setLoading(true)
-      console.log('[Auth] Iniciando setup MFA TOTP')
       
       const { data } = await authAPI.post('/auth/totp/setup')
       
@@ -264,24 +373,12 @@ export const AuthProvider = ({ children }) => {
         qrCode: data.qr_code,
         qrCodeUrl: data.qr_code_url,
         backupCodes: data.backup_codes || [],
-        issuer: data.issuer || 'Sentinela',
-        username: data.username || user?.username,
       })
       
       setShowMfaSetup(true)
       
-      console.log('[Auth] Setup MFA iniciado com sucesso')
-      
-      return { 
-        success: true, 
-        data: {
-          secret: data.secret,
-          qrCode: data.qr_code,
-          qrCodeUrl: data.qr_code_url,
-        }
-      }
+      return { success: true, data }
     } catch (error) {
-      console.error('[Auth] Erro ao configurar MFA:', error)
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Erro ao configurar MFA'
@@ -289,77 +386,72 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false)
     }
-  }, [user])
+  }, [])
 
   // ==========================================
-  // MFA TOTP - VERIFY & ENABLE
+  // VERIFY & ENABLE MFA
   // ==========================================
   const verifyAndEnableMFA = useCallback(async (totpCode) => {
     try {
       setLoading(true)
-      console.log('[Auth] Verificando código TOTP')
       
       const { data } = await authAPI.post('/auth/totp/verify', {
         totp_code: totpCode,
       })
       
-      // Atualizar usuário com MFA ativado
       const updatedUser = { 
         ...user, 
         mfa_enabled: true, 
         totp_configured: true 
       }
+      
       setUser(updatedUser)
-      localStorage.setItem('user', JSON.stringify(updatedUser))
+      saveToStorage(STORAGE_KEYS.USER, updatedUser)
       
       setMfaRequired(false)
       setShowMfaSetup(false)
       
-      console.log('[Auth] MFA TOTP ativado com sucesso')
+      console.log('[Auth] MFA ativado e persistido')
       
       return { 
         success: true, 
-        backupCodes: data.backup_codes || mfaSetupData?.backupCodes || []
+        backupCodes: data.backup_codes || []
       }
     } catch (error) {
-      console.error('[Auth] Erro ao verificar TOTP:', error)
       return { 
         success: false, 
-        error: error.response?.data?.detail || 'Código TOTP inválido'
+        error: error.response?.data?.detail || 'Código inválido'
       }
     } finally {
       setLoading(false)
     }
-  }, [user, mfaSetupData])
+  }, [user])
 
   // ==========================================
-  // MFA TOTP - DISABLE
+  // DISABLE MFA
   // ==========================================
   const disableMFA = useCallback(async (password) => {
     try {
       setLoading(true)
-      console.log('[Auth] Desabilitando MFA')
       
-      await authAPI.post('/auth/totp/disable', {
-        password: password,
-      })
+      await authAPI.post('/auth/totp/disable', { password })
       
       const updatedUser = { 
         ...user, 
         mfa_enabled: false, 
         totp_configured: false 
       }
+      
       setUser(updatedUser)
-      localStorage.setItem('user', JSON.stringify(updatedUser))
+      saveToStorage(STORAGE_KEYS.USER, updatedUser)
       
       setMfaSetupData(null)
       setShowMfaSetup(false)
       
-      console.log('[Auth] MFA desabilitado')
+      console.log('[Auth] MFA desabilitado e persistido')
       
       return { success: true }
     } catch (error) {
-      console.error('[Auth] Erro ao desabilitar MFA:', error)
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Erro ao desabilitar MFA'
@@ -370,47 +462,24 @@ export const AuthProvider = ({ children }) => {
   }, [user])
 
   // ==========================================
-  // MFA TOTP - GET STATUS
-  // ==========================================
-  const getMFAStatus = useCallback(async () => {
-    try {
-      const { data } = await authAPI.get('/auth/totp/status')
-      return { success: true, data }
-    } catch (error) {
-      console.error('[Auth] Erro ao obter status MFA:', error)
-      return { success: false, error: error.message }
-    }
-  }, [])
-
-  // ==========================================
-  // REFRESH USER
-  // ==========================================
-  const refreshUser = useCallback(async () => {
-    try {
-      const { data } = await authAPI.get('/auth/me')
-      setUser(data)
-      localStorage.setItem('user', JSON.stringify(data))
-      return { success: true, user: data }
-    } catch (error) {
-      console.error('[Auth] Erro ao atualizar usuário:', error)
-      return { success: false, error: error.message }
-    }
-  }, [])
-
-  // ==========================================
   // HELPERS
   // ==========================================
   const hasRole = useCallback((roles) => {
     if (!user) return false
-    if (Array.isArray(roles)) {
-      return roles.includes(user.role)
-    }
+    if (Array.isArray(roles)) return roles.includes(user.role)
     return user.role === roles
   }, [user])
 
   const isRoot = hasRole('ROOT')
   const isGestor = hasRole('GESTOR')
   const isOperador = hasRole('OPERADOR')
+
+  const getStorageData = useCallback(() => ({
+    token: getFromStorage(STORAGE_KEYS.TOKEN),
+    user: getFromStorage(STORAGE_KEYS.USER),
+    tokenExpiry: getFromStorage(STORAGE_KEYS.TOKEN_EXPIRY),
+    refreshToken: getFromStorage(STORAGE_KEYS.REFRESH_TOKEN),
+  }), [])
 
   // ==========================================
   // CONTEXT VALUE
@@ -431,11 +500,10 @@ export const AuthProvider = ({ children }) => {
     logout,
     refreshUser,
     
-    // MFA TOTP Actions
+    // MFA Actions
     setupMFA,
     verifyAndEnableMFA,
     disableMFA,
-    getMFAStatus,
     setShowMfaSetup,
     
     // Helpers
@@ -443,16 +511,13 @@ export const AuthProvider = ({ children }) => {
     isRoot,
     isGestor,
     isOperador,
+    getStorageData,
     
     // API
     authAPI,
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export default AuthContext
