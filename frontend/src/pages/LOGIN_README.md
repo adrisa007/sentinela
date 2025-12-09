@@ -1,51 +1,53 @@
 # Login Page - adrisa007/sentinela (ID: 1112237272)
 
-## Features
+Página de login completa com React Hook Form e validação.
 
-✅ **React Hook Form** com validação
-✅ **Email/Senha** com validation patterns
-✅ **MFA (TOTP)** conditional input (aparece se necessário)
-✅ **Auto-redirect** para /dashboard se já autenticado
-✅ **Loading states** durante submit
-✅ **Error handling** com mensagens claras
-✅ **Remember me** (opcional)
-✅ **Responsive** design
-✅ **Integração** completa com AuthContext
+## 🔐 Features
 
-## Validações
+### React Hook Form
+- ✅ Validação completa
+- ✅ Error handling
+- ✅ onBlur validation
+- ✅ Form state management
+- ✅ Auto-focus
 
-### Email
-- Obrigatório
-- Formato de email válido
-- Pattern: `/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i`
+### Validações
 
-### Senha
-- Obrigatório
-- Mínimo 6 caracteres
+#### Email
+- **Obrigatório**: Sim
+- **Pattern**: Email válido
+- **Regex**: `/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i`
+- **Mensagem**: "Email inválido"
 
-### MFA (TOTP)
-- Obrigatório quando `showMFA` = true
-- Exatamente 6 dígitos numéricos
-- Pattern: `/^\d{6}$/`
+#### Senha
+- **Obrigatório**: Sim
+- **Min Length**: 6 caracteres
+- **Mensagem**: "Senha deve ter no mínimo 6 caracteres"
 
-## Fluxo
+#### Código MFA (condicional)
+- **Obrigatório**: Somente se showMFA = true
+- **Pattern**: Exatamente 6 dígitos
+- **Regex**: `/^\d{6}$/`
+- **maxLength**: 6
+- **Mensagem**: "Código deve ter exatamente 6 dígitos"
 
-1. Usuário preenche email e senha
+### MFA Flow
+1. Usuário digita email e senha
 2. Submit → `login(credentials)`
 3. Se backend retornar `needsMFA: true`:
-   - Mostrar campo MFA
-   - Usuário digita código de 6 dígitos
-   - Submit → `loginWithMFA(credentials, totpCode)`
-4. Se sucesso → Redirect para /dashboard
-5. Se erro → Mostrar mensagem
+   - `setShowMFA(true)`
+   - Campo TOTP aparece
+   - Auto-focus no campo MFA
+4. Usuário digita código de 6 dígitos
+5. Submit → `loginWithMFA(credentials, totpCode)`
+6. Se sucesso → Redirect para /dashboard
 
-## Auto-redirect
-
-Usuários já autenticados são automaticamente redirecionados:
-
+### Auto-Redirect
+Usuários já autenticados são redirecionados automaticamente:
 ```javascript
 useEffect(() => {
   if (isAuthenticated) {
-    navigate('/dashboard', { replace: true })
+    const from = location.state?.from?.pathname || '/dashboard'
+    navigate(from, { replace: true })
   }
 }, [isAuthenticated])
