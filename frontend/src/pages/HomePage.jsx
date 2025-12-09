@@ -1,81 +1,131 @@
 import { Link } from 'react-router-dom'
-import { Shield, Activity, Database, Zap } from 'lucide-react'
+import { useAuth } from '@contexts/AuthContext'
+
+/**
+ * HomePage - adrisa007/sentinela (ID: 1112237272)
+ */
 
 function HomePage() {
+  const { isAuthenticated, user } = useAuth()
+
   return (
-    <div className="space-y-16">
-      {/* Hero Section */}
-      <section className="text-center py-20">
-        <Shield className="w-20 h-20 mx-auto mb-6 text-primary-600" />
-        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
-          Sentinela
-        </h1>
-        <p className="text-2xl text-gray-600 mb-8">
-          Vigilância total, risco zero.
-        </p>
-        <div className="flex justify-center space-x-4">
-          <Link to="/dashboard" className="btn-primary">
-            Acessar Dashboard
-          </Link>
-          <a 
-            href="https://web-production-8355.up.railway.app/docs" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="btn-secondary"
-          >
-            Ver Documentação
-          </a>
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
+      <div className="container mx-auto px-4 py-16">
+        {/* Hero Section */}
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-primary-100 rounded-full mb-6 animate-bounce-slow">
+            <span className="text-6xl">🛡️</span>
+          </div>
+          
+          <h1 className="text-6xl font-bold mb-4">
+            <span className="gradient-text">Sentinela</span>
+          </h1>
+          
+          <p className="text-2xl text-gray-600 mb-2">
+            Vigilância total, risco zero.
+          </p>
+          
+          <p className="text-sm text-gray-500">
+            Sistema de Monitoramento e Segurança
+          </p>
         </div>
-      </section>
 
-      {/* Features */}
-      <section className="grid md:grid-cols-3 gap-8">
-        <FeatureCard
-          icon={<Activity className="w-12 h-12" />}
-          title="Monitoramento em Tempo Real"
-          description="Acompanhe o status do sistema com health checks completos"
-        />
-        <FeatureCard
-          icon={<Database className="w-12 h-12" />}
-          title="Neon Database"
-          description="PostgreSQL serverless com alta performance"
-        />
-        <FeatureCard
-          icon={<Zap className="w-12 h-12" />}
-          title="API FastAPI"
-          description="Backend moderno e rápido com Python 3.12"
-        />
-      </section>
-
-      {/* Stats */}
-      <section className="card text-center">
-        <h2 className="text-3xl font-bold mb-8">Sistema Online</h2>
-        <div className="grid md:grid-cols-4 gap-6">
-          <StatCard label="Uptime" value="99.9%" />
-          <StatCard label="Response Time" value="<100ms" />
-          <StatCard label="Testes" value="137/171" />
-          <StatCard label="Cobertura" value="80%" />
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
+          <StatCard icon="⚛️" label="React" value="18.2" />
+          <StatCard icon="⚡" label="Vite" value="5.1" />
+          <StatCard icon="🎨" label="Tailwind" value="3.4" />
+          <StatCard icon="🧪" label="Testes" value="80%" />
         </div>
-      </section>
+
+        {/* Features */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <FeatureCard
+            icon="🔐"
+            title="Autenticação Segura"
+            description="Login com JWT, MFA TOTP e gestão de sessões"
+          />
+          <FeatureCard
+            icon="📊"
+            title="Dashboard Completo"
+            description="Métricas em tempo real com gráficos Chart.js"
+          />
+          <FeatureCard
+            icon="🐘"
+            title="Neon Database"
+            description="PostgreSQL serverless de alta performance"
+          />
+        </div>
+
+        {/* CTA */}
+        <div className="text-center">
+          {isAuthenticated ? (
+            <div>
+              <p className="text-lg mb-4">
+                Bem-vindo, <strong>{user?.username}</strong>!
+              </p>
+              <Link to="/dashboard" className="btn-primary text-lg">
+                📊 Acessar Dashboard
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <Link to="/login" className="btn-primary text-lg inline-block">
+                🔐 Fazer Login
+              </Link>
+              <div className="flex justify-center space-x-4 text-sm">
+                <Link to="/health" className="text-primary-600 hover:text-primary-700">
+                  💚 Health Check
+                </Link>
+                <span>•</span>
+                <a
+                  href="https://web-production-8355.up.railway.app/docs"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary-600 hover:text-primary-700"
+                >
+                  📚 API Docs
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Info */}
+        <div className="mt-16 text-center text-sm text-gray-500">
+          <p>adrisa007/sentinela | Repository ID: 1112237272</p>
+          <p className="mt-2">
+            Backend: <a
+              href="https://web-production-8355.up.railway.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary-600 hover:text-primary-700"
+            >
+              https://web-production-8355.up.railway.app
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ icon, label, value }) {
+  return (
+    <div className="card card-body text-center hover:scale-105 transition-transform">
+      <div className="text-4xl mb-2">{icon}</div>
+      <div className="text-3xl font-bold text-primary-600">{value}</div>
+      <div className="text-sm text-gray-600">{label}</div>
     </div>
   )
 }
 
 function FeatureCard({ icon, title, description }) {
   return (
-    <div className="card hover:shadow-xl transition-shadow">
-      <div className="text-primary-600 mb-4">{icon}</div>
+    <div className="card card-body text-center">
+      <div className="text-5xl mb-4">{icon}</div>
       <h3 className="text-xl font-semibold mb-2">{title}</h3>
       <p className="text-gray-600">{description}</p>
-    </div>
-  )
-}
-
-function StatCard({ label, value }) {
-  return (
-    <div>
-      <div className="text-4xl font-bold text-primary-600 mb-2">{value}</div>
-      <div className="text-gray-600">{label}</div>
     </div>
   )
 }

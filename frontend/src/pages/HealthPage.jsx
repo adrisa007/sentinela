@@ -1,70 +1,101 @@
-import { useQuery } from '@tanstack/react-query'
-import { fetchHealth, fetchHealthLive, fetchHealthReady } from '@services/api'
-import { CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
+
+/**
+ * HealthPage - adrisa007/sentinela (ID: 1112237272)
+ */
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://web-production-8355.up.railway.app'
 
 function HealthPage() {
-  const { data: health } = useQuery({
-    queryKey: ['health'],
-    queryFn: fetchHealth,
-    refetchInterval: 5000,
-  })
+  const [health, setHealth] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const { data: live } = useQuery({
-    queryKey: ['health-live'],
-    queryFn: fetchHealthLive,
-    refetchInterval: 5000,
-  })
+  useEffect(() => {
+    fetchHealth()
+  }, [])
 
-  const { data: ready } = useQuery({
-    queryKey: ['health-ready'],
-    queryFn: fetchHealthReady,
-    refetchInterval: 5000,
-  })
+  const fetchHealth = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const { data } = await axios.get(`${API_URL}/health`)
+      setHealth(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-4xl font-bold">Health Checks</h1>
-
-      <div className="grid md:grid-cols-3 gap-6">
-        <HealthCheckCard
-          title="General Health"
-          data={health}
-          endpoint="/health"
-        />
-        <HealthCheckCard
-          title="Liveness (Redis)"
-          data={live}
-          endpoint="/health/live"
-        />
-        <HealthCheckCard
-          title="Readiness (Database)"
-          data={ready}
-          endpoint="/health/ready"
-        />
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">💚 Health Check</h1>
+          <p className="text-gray-600">Status do sistema</p>
+        </div>
+        <button onClick={fetchHealth} className="btn-primary">
+          🔄 Atualizar
+        </button>
       </div>
+
+      {loading && (
+        <div className="flex justify-center py-12">
+          <div className="spinner w-12 h-12 border-primary-600"></div>
+        </div>
+      )}
+
+      {error && (
+        <div className="card bg-danger-50 border-2 border-danger-400">
+          <div className="card-body">
+            <p className="text-danger-600">❌ Erro: {error}</p>
+          </div>
+        </div>
+      )}
+
+      {health && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <StatusCard
+              label="Status"
+              value={health.status}
+              icon={health.status === 'ok' ? '✅' : '❌'}
+              isGood={health.status === 'ok'}
+            />
+            <StatusCard
+              label="Database"
+              value={health.database}
+              icon={health.database === 'connected' ? '🐘' : '❌'}
+              isGood={health.database === 'connected'}
+            />
+            <StatusCard
+              label="Serviço"
+              value={health.service}
+              icon="🚀"
+              isGood={true}
+            />
+          </div>
+
+          <div className="card card-body">
+            <h2 className="text-2xl font-bold mb-4">Detalhes Completos</h2>
+            <pre className="bg-gray-100 p-4 rounded-lg overflow-auto text-sm">
+              {JSON.stringify(health, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function HealthCheckCard({ title, data, endpoint }) {
-  const isHealthy = data?.status === 'ok' || data?.status === 'ready' || data?.status === 'alive'
-  
+function StatusCard({ label, value, icon, isGood }) {
   return (
-    <div className="card">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-semibold">{title}</h3>
-        {isHealthy ? (
-          <CheckCircle className="w-6 h-6 text-green-600" />
-        ) : data ? (
-          <XCircle className="w-6 h-6 text-red-600" />
-        ) : (
-          <AlertCircle className="w-6 h-6 text-yellow-600" />
-        )}
-      </div>
-      <div className="text-sm text-gray-600 mb-2">{endpoint}</div>
-      <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-40">
-        {JSON.stringify(data, null, 2)}
-      </pre>
+    <div className={`card card-body ${isGood ? 'bg-success-50' : 'bg-danger-50'}`}>
+      <div className="text-4xl mb-2">{icon}</div>
+      <p className="text-sm text-gray-600 mb-1">{label}</p>
+      <p className="text-2xl font-bold">{value}</p>
     </div>
   )
 }

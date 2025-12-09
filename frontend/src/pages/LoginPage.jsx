@@ -1,17 +1,30 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '@contexts/AuthContext'
+
+/**
+ * LoginPage - adrisa007/sentinela (ID: 1112237272)
+ */
 
 function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [totpCode, setTotpCode] = useState('')
-  const [needsMFA, setNeedsMFA] = useState(false)
+  const [showMFA, setShowMFA] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  
-  const { login, loginWithMFA } = useAuth()
+
+  const { login, loginWithMFA, isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Redirect se já autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from?.pathname || '/dashboard'
+      navigate(from, { replace: true })
+    }
+  }, [isAuthenticated, navigate, location])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -20,18 +33,18 @@ function LoginPage() {
 
     try {
       let result
-      
-      if (needsMFA) {
+
+      if (showMFA) {
         result = await loginWithMFA({ username, password }, totpCode)
       } else {
         result = await login({ username, password })
       }
 
       if (result.success) {
-        navigate('/dashboard')
+        // Navegação será feita pelo useEffect
       } else if (result.needsMFA) {
-        setNeedsMFA(true)
-        setError('Digite o código MFA do seu aplicativo autenticador')
+        setShowMFA(true)
+        setError('Digite o código MFA do seu aplicativo')
       } else {
         setError(result.error)
       }
@@ -43,74 +56,88 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50">
-      <div className="card w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50 px-4">
+      <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="text-6xl mb-4">🛡️</div>
-          <h1 className="text-3xl font-bold gradient-text">Sentinela</h1>
-          <p className="text-gray-600 mt-2">Faça login para continuar</p>
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-primary-100 rounded-full mb-4">
+            <span className="text-5xl">🔐</span>
+          </div>
+          <h1 className="text-4xl font-bold gradient-text mb-2">Login</h1>
+          <p className="text-gray-600">Sentinela - adrisa007/sentinela</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Usuário</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Senha</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          {needsMFA && (
+        <div className="card card-body">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Código MFA (6 dígitos)
-              </label>
+              <label className="form-label">Usuário</label>
               <input
                 type="text"
-                value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                placeholder="000000"
-                maxLength="6"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="form-input"
+                placeholder="seu_usuario"
+                required
+                disabled={loading}
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="form-label">Senha</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="form-input"
+                placeholder="••••••••"
                 required
                 disabled={loading}
               />
             </div>
-          )}
 
-          {error && (
-            <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
+            {showMFA && (
+              <div className="animate-slide-in">
+                <label className="form-label">Código MFA (6 dígitos)</label>
+                <input
+                  type="text"
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                  className="form-input text-center text-2xl tracking-widest"
+                  placeholder="000000"
+                  maxLength="6"
+                  required
+                  disabled={loading}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  📱 Código do Google Authenticator
+                </p>
+              </div>
+            )}
 
-          <button
-            type="submit"
-            className="w-full btn-primary"
-            disabled={loading}
-          >
-            {loading ? 'Entrando...' : 'Entrar'}
-          </button>
-        </form>
+            {error && (
+              <div className="p-3 bg-danger-50 border border-danger-200 rounded-lg text-danger-600 text-sm">
+                {error}
+              </div>
+            )}
 
-        <p className="text-center text-sm text-gray-500 mt-6">
-          adrisa007/sentinela (ID: 1112237272)
+            <button
+              type="submit"
+              className="btn-primary w-full"
+              disabled={loading}
+            >
+              {loading ? 'Entrando...' : '🔐 Entrar'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center text-sm">
+            <Link to="/" className="text-primary-600 hover:text-primary-700">
+              ← Voltar para Home
+            </Link>
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-gray-500 mt-6">
+          Repository ID: 1112237272
         </p>
       </div>
     </div>
