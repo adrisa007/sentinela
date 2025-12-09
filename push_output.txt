@@ -1,2 +1,0 @@
-To https://github.com/adrisa007/sentinela
-   6347594..f2b5482  main -> main
