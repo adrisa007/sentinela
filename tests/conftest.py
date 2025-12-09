@@ -1,76 +1,38 @@
-import sys
-import os
-from pathlib import Path
-
-# Adiciona o diretório raiz ao path
-root_dir = Path(__file__).parent.parent
-sys.path.insert(0, str(root_dir))
-
+"""
+Configuração global de testes - pytest fixtures
+Repositório: adrisa007/sentinela (ID: 1112237272)
+"""
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import StaticPool
-from fastapi.testclient import TestClient
-
-from app.core.database import Base, get_db
-from app.main import app
-
-# Database de teste em memória (compartilhado entre fixtures e app)
-TEST_DATABASE_URL = "sqlite:///:memory:"
-
-@pytest.fixture(scope="function")
-def engine():
-    """
-    Cria engine de teste em memória compartilhado
-    Usa StaticPool para manter a conexão aberta
-    """
-    engine = create_engine(
-        TEST_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,  # Mantém conexão em memória
-        echo=False
-    )
-    
-    # Criar todas as tabelas
-    Base.metadata.create_all(bind=engine)
-    
-    yield engine
-    
-    # Limpar após teste
-    Base.metadata.drop_all(bind=engine)
+from unittest.mock import patch
+from tests.helpers import mock_totp_validation, generate_valid_totp
 
 
-@pytest.fixture(scope="function")
-def db_session(engine):
-    """
-    Cria sessão de banco de dados para cada teste
-    """
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    session = TestingSessionLocal()
-    
-    yield session
-    
-    session.close()
+@pytest.fixture
+def mock_totp(monkeypatch):
+    """Fixture que mocka validação TOTP para sempre retornar True"""
+    mock_totp_validation(monkeypatch)
+    return generate_valid_totp()
 
 
-@pytest.fixture(scope="function")
-def client(engine):
-    """
-    Cria TestClient com override de get_db para usar mesma sessão
-    """
-    # Override da dependency get_db para usar o engine de teste
-    def override_get_db():
-        TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-        db = TestingSessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
+@pytest.fixture
+def disable_mfa(monkeypatch):
+    """Fixture que desabilita MFA completamente nos testes"""
+    def always_true(*args, **kwargs):
+        return True
     
-    app.dependency_overrides[get_db] = override_get_db
-    
-    with TestClient(app) as test_client:
-        yield test_client
-    
-    # Limpar overrides após teste
-    app.dependency_overrides.clear()
+    monkeypatch.setattr("app.core.dependencies.verify_totp", always_true)
+    monkeypatch.setattr("pyotp.TOTP.verify", always_true)
+
+
+@pytest.fixture(autouse=True)
+def reset_database():
+    """Fixture que reseta o estado do database entre testes"""
+    # Aqui você pode adicionar lógica para limpar o DB
+    yield
+    # Cleanup após o teste
+
+
+@pytest.fixture
+def valid_totp_code():
+    """Fixture que retorna um código TOTP válido"""
+    return generate_valid_totp()

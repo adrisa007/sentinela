@@ -94,6 +94,11 @@ async def root():
         dict: Mensagem de boas-vindas e informações da aplicação
     """
     return {
+        "rate_limiting": {
+            "enabled": True,
+            "limit": "300/minute",
+            "login_limit": "10/minute"
+        },
         "message": "Sentinela Python rodando no Railway! Vigilância total, risco zero.",
         "url": "https://web-production-8355.up.railway.app",
         "service": "sentinela",
@@ -117,6 +122,11 @@ async def root():
         dict: Mensagem de boas-vindas e informações da aplicação
     """
     return {
+        "rate_limiting": {
+            "enabled": True,
+            "limit": "300/minute",
+            "login_limit": "10/minute"
+        },
         "message": "Sentinela Python rodando no Railway! Vigilância total, risco zero.",
         "url": "https://web-production-8355.up.railway.app",
         "service": "sentinela",
@@ -140,6 +150,11 @@ async def root():
         dict: Mensagem de boas-vindas e informações da aplicação
     """
     return {
+        "rate_limiting": {
+            "enabled": True,
+            "limit": "300/minute",
+            "login_limit": "10/minute"
+        },
         "message": "Sentinela Python rodando no Railway! Vigilância total, risco zero.",
         "url": "https://web-production-8355.up.railway.app",
         "service": "sentinela",

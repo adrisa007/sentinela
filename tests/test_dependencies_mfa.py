@@ -73,7 +73,7 @@ class TestMFARequirement:
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=[settings.JWT_ALGORITHM]
+            algorithms=[settings.ALGORITHM]
         )
         
         # Verificar que não tem TOTP
@@ -85,7 +85,7 @@ class TestMFARequirement:
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=[settings.JWT_ALGORITHM]
+            algorithms=[settings.ALGORITHM]
         )
         
         # Verificar que tem TOTP

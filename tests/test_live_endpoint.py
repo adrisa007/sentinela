@@ -8,8 +8,8 @@ class TestLiveEndpoint:
     def client(self):
         return TestClient(app)
     
-    @patch('app.routers.health.check_redis_connection')
-    @patch('app.routers.health.get_redis_info')
+    @patch('app.redis_client.check_redis_connection')
+    @patch('app.redis_client.get_redis_info')
     def test_live_returns_200_when_redis_connected(self, mock_info, mock_check, client):
         mock_check.return_value = True
         mock_info.return_value = {"connected": True, "version": "7.0", "uptime_seconds": 100, "connected_clients": 2}
@@ -17,8 +17,8 @@ class TestLiveEndpoint:
         assert response.status_code == 200
         assert response.json()["status"] == "alive"
     
-    @patch('app.routers.health.check_redis_connection')
-    @patch('app.routers.health.get_redis_info')
+    @patch('app.redis_client.check_redis_connection')
+    @patch('app.redis_client.get_redis_info')
     def test_live_returns_503_when_redis_down(self, mock_info, mock_check, client):
         mock_check.return_value = False
         mock_info.return_value = {"connected": False, "error": "Connection refused"}
