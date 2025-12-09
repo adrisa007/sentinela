@@ -1,0 +1,6 @@
+[main f2b5482] feat: implementação completa com README profissional
+ Author: Adriano Israel Antunes <adriano.uperttech@gmail.com>
+ 3 files changed, 259 insertions(+)
+ create mode 100644 .env.railway.neon
+ create mode 100755 final_push_and_deploy.sh
+ create mode 160000 sentinela
