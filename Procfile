@@ -1,1 +1,3 @@
-web: uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+web: python3 start.py
+worker: celery -A app.tasks worker --loglevel=info
+beat: celery -A app.tasks beat --loglevel=info
