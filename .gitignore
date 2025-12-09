@@ -22,6 +22,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Database
 *.db
@@ -32,6 +34,7 @@ sentinela.db
 # Environment
 .env
 .env.local
+.env.*.local
 .venv
 
 # IDE
@@ -40,10 +43,14 @@ sentinela.db
 *.swp
 *.swo
 *~
+.project
+.pydevproject
+.settings/
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Logs
 *.log
@@ -52,7 +59,38 @@ logs/
 # Testing
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+.tox/
+.hypothesis/
+.nox/
+*.cover
+coverage.xml
+*.coveragerc
+
+# Celery
+celerybeat-schedule*
+celery_pids.txt
+
+# Reports (generated files)
+reports/*.html
+reports/*.json
+reports/*.log
+
+# Temporary files
+*.tmp
+*.temp
+*_output.txt
+test_results.txt
+test_complete_report.txt
 
 # Backup
 *.bak
+*.backup
+*.old
+
+# Docker
+.docker/
+
+# Migrations (if using Alembic)
+# migrations/versions/*.py  # Uncomment to ignore migration files
