@@ -1,13 +1,26 @@
 /**
- * PostCSS Configuration para adrisa007/sentinela (ID: 1112237272)
+ * PostCSS Configuration
+ * Repository: adrisa007/sentinela (ID: 1112237272)
  */
 export default {
   plugins: {
+    // Tailwind CSS
     tailwindcss: {},
+    
+    // Autoprefixer para compatibilidade cross-browser
     autoprefixer: {},
-    // Plugin para nested CSS (opcional)
-    // 'postcss-nested': {},
-    // Plugin para minificação em produção
-    ...(process.env.NODE_ENV === 'production' ? { cssnano: {} } : {}),
+    
+    // Minificação CSS em produção (opcional)
+    ...(process.env.NODE_ENV === 'production'
+      ? {
+          cssnano: {
+            preset: ['default', {
+              discardComments: {
+                removeAll: true,
+              },
+            }],
+          },
+        }
+      : {}),
   },
 }
