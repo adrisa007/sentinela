@@ -82,6 +82,29 @@ app.include_router(entidades_router.router)
 app.include_router(cameras.router)
 app.include_router(contratos.router)
 
+@app.get("/", response_model=dict)
+async def root():
+    """
+    Endpoint raiz da API Sentinela
+    
+    Returns:
+        dict: Mensagem de boas-vindas e informações da aplicação
+    """
+    return {
+        "message": "Sentinela Python rodando no Railway! Vigilância total, risco zero.",
+        "url": "https://web-production-8355.up.railway.app",
+        "service": "sentinela",
+        "status": "online",
+        "endpoints": {
+            "docs": "/docs",
+            "redoc": "/redoc",
+            "health": "/health",
+            "health_live": "/health/live",
+            "health_ready": "/health/ready"
+        }
+    }
+
+
 
 # ============ Rotas Públicas ============
 
