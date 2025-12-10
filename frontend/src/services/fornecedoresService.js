@@ -16,11 +16,28 @@ const api = axios.create({
 // Interceptor para token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
+  console.log('Token encontrado:', token ? 'SIM' : 'NÃO')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
+
+// Interceptor para erros (redirecionar 401)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.error('Erro 401: Token inválido ou expirado')
+      // Limpar dados de autenticação
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      // Redirecionar para login
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
 
 /**
  * Buscar todos os fornecedores (paginado)
@@ -55,10 +72,19 @@ export const getFornecedorById = async (id) => {
  */
 export const getFornecedorPNCP = async (cnpj) => {
   try {
+    console.log('API Base URL:', API_URL)
+    console.log('Chamando endpoint:', `/pncp/fornecedor/${cnpj}`)
+    console.log('URL completa:', `${API_URL}/pncp/fornecedor/${cnpj}`)
     const response = await api.get(`/pncp/fornecedor/${cnpj}`)
     return response.data
   } catch (error) {
     console.error('Erro ao buscar no PNCP:', error)
+    console.error('Erro details:', {
+      message: error.message,
+      response: error.response,
+      request: error.request,
+      config: error.config
+    })
     throw error
   }
 }

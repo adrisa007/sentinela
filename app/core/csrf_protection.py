@@ -39,6 +39,7 @@ CSRF_EXEMPT_ROUTES = [
     "/entidades",     # Temporariamente isento para testes
     "/contratos",     # Temporariamente isento para testes
     "/cameras",       # Temporariamente isento para testes
+    "/pncp",          # API PNCP usa apenas autenticação JWT
 ]
 
 

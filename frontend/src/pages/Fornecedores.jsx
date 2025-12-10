@@ -203,12 +203,18 @@ function Fornecedores() {
 
   const handleSearchPNCP = async (cnpj) => {
     try {
+      console.log('Iniciando consulta PNCP para CNPJ:', cnpj)
       setPncpLoading(true)
-      const data = await getFornecedorPNCP(unformatCNPJ(cnpj))
+      const cnpjLimpo = unformatCNPJ(cnpj)
+      console.log('CNPJ limpo:', cnpjLimpo)
+      const data = await getFornecedorPNCP(cnpjLimpo)
+      console.log('Dados recebidos do PNCP:', data)
       setPncpData(data)
       setShowPNCPModal(true)
     } catch (err) {
-      alert('Erro ao buscar no PNCP: ' + err.message)
+      console.error('Erro completo:', err)
+      console.error('Response:', err.response)
+      alert('Erro ao buscar no PNCP: ' + (err.response?.data?.detail || err.message))
     } finally {
       setPncpLoading(false)
     }
