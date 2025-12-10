@@ -15,10 +15,14 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    # Truncar senha para 72 bytes (limite do bcrypt)
+    plain_password = plain_password[:72]
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
+    # Truncar senha para 72 bytes (limite do bcrypt)
+    password = password[:72]
     return pwd_context.hash(password)
 
 
