@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -8,34 +8,62 @@ function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   
-  const { login } = useAuth()
+  const { login, user, isAuthenticated } = useAuth()
   const navigate = useNavigate()
+
+  // Se já estiver autenticado, redirecionar
+  useEffect(() => {
+    console.log('[Login] Verificando auth:', { user, isAuthenticated })
+    if (isAuthenticated) {
+      console.log('[Login] Já autenticado, redirecionando...')
+      navigate('/dashboard/gestor', { replace: true })
+    }
+  }, [isAuthenticated, navigate, user])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    console.log('[Login] Iniciando login...', { email })
+    
     setLoading(true)
     setError('')
 
     try {
-      // Simular login (substituir por chamada real à API)
+      // Simular chamada à API
       await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Validação básica
+      if (!email || !password) {
+        throw new Error('Email e senha são obrigatórios')
+      }
+
+      console.log('[Login] Login bem-sucedido')
 
       // Mock de resposta do backend
       const mockUser = {
         id: 1,
         email: email,
         role: 'GESTOR',
-        name: email.split('@')[0]
+        name: email.split('@')[0],
+        mfa_enabled: false
       }
-      const mockToken = 'mock-jwt-token-' + Date.now()
+      const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.' + Date.now()
 
-      // Fazer login
+      console.log('[Login] Chamando login com:', { mockUser, mockToken })
+
+      // Fazer login através do context
       login(mockUser, mockToken)
 
-      // Redirecionar para dashboard do gestor
-      navigate('/dashboard/gestor')
+      console.log('[Login] Login context executado, navegando...')
+
+      // Pequeno delay para garantir que o estado foi atualizado
+      setTimeout(() => {
+        console.log('[Login] Navegando para dashboard')
+        navigate('/dashboard/gestor', { replace: true })
+      }, 100)
+
     } catch (err) {
-      setError('Erro ao fazer login. Tente novamente.')
+      console.error('[Login] Erro:', err)
+      setError(err.message || 'Erro ao fazer login. Tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -53,7 +81,7 @@ function Login() {
             <span className="gradient-text">Login</span>
           </h1>
           <p className="text-gray-600">
-            Sistema Sentinela - Acesso Seguro
+            Sistema Sentinela - Acesso Gestor
           </p>
         </div>
 
@@ -61,25 +89,32 @@ function Login() {
         <div className="card card-body">
           {error && (
             <div className="mb-4 p-3 bg-danger-50 border border-danger-200 rounded-lg text-danger-800 text-sm">
-              {error}
+              ⚠️ {error}
             </div>
           )}
+
+          {/* Info de desenvolvimento */}
+          <div className="mb-4 p-3 bg-info-50 border border-info-200 rounded-lg text-info-800 text-sm">
+            <p className="font-medium mb-1">🔓 Modo Desenvolvimento</p>
+            <p className="text-xs">Use qualquer email e senha para entrar</p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
               <label htmlFor="email" className="form-label">
-                Email ou Usuário <span className="text-danger-500">*</span>
+                Email <span className="text-danger-500">*</span>
               </label>
               <input
                 id="email"
-                type="text"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="form-input"
                 placeholder="gestor@sentinela.com"
                 required
                 autoFocus
+                disabled={loading}
               />
             </div>
 
@@ -96,29 +131,15 @@ function Login() {
                 className="form-input"
                 placeholder="••••••••"
                 required
+                disabled={loading}
               />
-            </div>
-
-            {/* Remember Me */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 text-primary-600 rounded"
-                />
-                <span className="ml-2 text-sm text-gray-700">Lembrar-me</span>
-              </label>
-              
-              <a href="#" className="text-sm text-primary-600 hover:text-primary-700">
-                Esqueceu a senha?
-              </a>
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary py-3 text-base font-semibold disabled:opacity-50"
+              className="w-full btn-primary py-3 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center">
@@ -126,7 +147,7 @@ function Login() {
                   Entrando...
                 </span>
               ) : (
-                '🔓 Entrar'
+                '🔓 Entrar no Sistema'
               )}
             </button>
           </form>
@@ -139,9 +160,6 @@ function Login() {
             >
               ← Voltar para Home
             </Link>
-            <p className="text-xs text-gray-500">
-              Use qualquer email para testar (modo desenvolvimento)
-            </p>
           </div>
         </div>
 

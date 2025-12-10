@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 /**
@@ -6,7 +6,10 @@ import { useAuth } from '../contexts/AuthContext'
  */
 
 function ProtectedRoute({ children, requiredRole }) {
-  const { user, loading } = useAuth()
+  const { user, loading, isAuthenticated } = useAuth()
+  const location = useLocation()
+
+  console.log('[ProtectedRoute]', { user, loading, isAuthenticated, location: location.pathname })
 
   if (loading) {
     return (
@@ -19,11 +22,13 @@ function ProtectedRoute({ children, requiredRole }) {
     )
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />
+  if (!isAuthenticated || !user) {
+    console.log('[ProtectedRoute] Não autenticado, redirecionando para login')
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   if (requiredRole && user.role !== requiredRole) {
+    console.log('[ProtectedRoute] Sem permissão:', { userRole: user.role, requiredRole })
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50">
         <div className="card card-body max-w-md text-center">
@@ -32,17 +37,22 @@ function ProtectedRoute({ children, requiredRole }) {
           <p className="text-gray-600 mb-4">
             Você não tem permissão para acessar esta página.
           </p>
+          <p className="text-sm text-gray-500 mb-4">
+            Seu perfil: <strong>{user.role}</strong><br/>
+            Perfil necessário: <strong>{requiredRole}</strong>
+          </p>
           <button
             onClick={() => window.history.back()}
             className="btn-primary"
           >
-            Voltar
+            ← Voltar
           </button>
         </div>
       </div>
     )
   }
 
+  console.log('[ProtectedRoute] Acesso permitido')
   return children
 }
 

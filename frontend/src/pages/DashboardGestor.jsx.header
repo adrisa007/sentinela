@@ -1,0 +1,25 @@
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+
+/**
+ * Dashboard Gestor - adrisa007/sentinela (ID: 1112237272)
+ */
+
+function DashboardGestor() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  console.log('[DashboardGestor] Renderizando, user:', user)
+
+  useEffect(() => {
+    console.log('[DashboardGestor] Montado, user:', user)
+  }, [user])
+
+  const handleLogout = () => {
+    console.log('[DashboardGestor] Logout')
+    logout()
+    navigate('/login')
+  }
+
+  // ... resto do código
