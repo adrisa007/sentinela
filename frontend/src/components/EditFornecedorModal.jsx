@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { formatCNPJorCPF, isValidCNPJorCPF, unformatCNPJ } from '@utils/cnpjUtils'
 
 /**
- * Modal para Adicionar Fornecedor - adrisa007/sentinela (ID: 1112237272)
+ * Modal para Editar Fornecedor - adrisa007/sentinela (ID: 1112237272)
  */
 
-function AddFornecedorModal({ isOpen, onClose, onSave }) {
+function EditFornecedorModal({ isOpen, onClose, onSave, fornecedor }) {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     cnpj: '',
@@ -18,6 +18,22 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
     email: '',
   })
   const [errors, setErrors] = useState({})
+
+  // Preencher form quando fornecedor mudar
+  useEffect(() => {
+    if (fornecedor && isOpen) {
+      setFormData({
+        cnpj: formatCNPJorCPF(fornecedor.cnpj),
+        razao_social: fornecedor.razao_social || '',
+        nome_fantasia: fornecedor.nome_fantasia || '',
+        tipo: fornecedor.tipo || 'JURIDICA',
+        municipio: fornecedor.municipio || '',
+        uf: fornecedor.uf || '',
+        telefone: fornecedor.telefone || '',
+        email: fornecedor.email || '',
+      })
+    }
+  }, [fornecedor, isOpen])
 
   const handleChange = (field, value) => {
     if (field === 'cnpj') {
@@ -56,30 +72,22 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    console.log('handleSubmit chamado', formData)
-    
     if (!validate()) {
-      console.log('Validação falhou', errors)
       return
     }
 
-    console.log('Validação passou, salvando...')
     setLoading(true)
     try {
       await new Promise(resolve => setTimeout(resolve, 1000)) // Simular API
-      const newFornecedor = {
+      const updatedFornecedor = {
+        ...fornecedor,
         ...formData,
         cnpj: unformatCNPJ(formData.cnpj),
-        status: 'ATIVO',
-        contratos_ativos: 0,
-        valor_total: 0,
       }
-      console.log('Chamando onSave com:', newFornecedor)
-      onSave(newFornecedor)
+      onSave(updatedFornecedor)
       handleClose()
     } catch (error) {
-      console.error('Erro ao salvar:', error)
-      alert('Erro ao salvar fornecedor: ' + error.message)
+      alert('Erro ao atualizar fornecedor: ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -100,20 +108,20 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
     onClose()
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !fornecedor) return null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[95vh] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold flex items-center gap-3">
-                ➕ Adicionar Fornecedor
+                ✏️ Editar Fornecedor
               </h2>
-              <p className="text-green-100 text-sm mt-1">
-                Preencha os dados cadastrais do novo fornecedor
+              <p className="text-blue-100 text-sm mt-1">
+                Atualize os dados cadastrais do fornecedor
               </p>
             </div>
             <button
@@ -143,7 +151,7 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
                     value={formData.cnpj}
                     onChange={(e) => handleChange('cnpj', e.target.value)}
                     placeholder="00.000.000/0000-00"
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all ${
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
                       errors.cnpj ? 'border-red-300 bg-red-50' : 'border-gray-300'
                     }`}
                     maxLength={18}
@@ -165,7 +173,7 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
                   <select
                     value={formData.tipo}
                     onChange={(e) => handleChange('tipo', e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   >
                     <option value="JURIDICA">🏛️ Pessoa Jurídica</option>
                     <option value="FISICA">👤 Pessoa Física</option>
@@ -184,7 +192,7 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
                     value={formData.razao_social}
                     onChange={(e) => handleChange('razao_social', e.target.value)}
                     placeholder="Nome completo ou razão social"
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all ${
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
                       errors.razao_social ? 'border-red-300 bg-red-50' : 'border-gray-300'
                     }`}
                   />
@@ -207,7 +215,7 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
                     value={formData.nome_fantasia}
                     onChange={(e) => handleChange('nome_fantasia', e.target.value)}
                     placeholder="Nome fantasia (opcional)"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -223,7 +231,7 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
                     placeholder="email@exemplo.com"
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all ${
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
                       errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
                     }`}
                   />
@@ -246,7 +254,7 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
                     value={formData.telefone}
                     onChange={(e) => handleChange('telefone', e.target.value)}
                     placeholder="(00) 00000-0000"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -262,7 +270,7 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
                     value={formData.municipio}
                     onChange={(e) => handleChange('municipio', e.target.value)}
                     placeholder="Nome da cidade"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
                 <div>
@@ -274,7 +282,7 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
                     value={formData.uf}
                     onChange={(e) => handleChange('uf', e.target.value.toUpperCase())}
                     placeholder="SP"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-center font-semibold"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-center font-semibold"
                     maxLength={2}
                   />
                 </div>
@@ -296,7 +304,7 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {loading ? (
                   <>
@@ -304,14 +312,14 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Salvando...
+                    Atualizando...
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    Salvar Fornecedor
+                    Salvar Alterações
                   </>
                 )}
               </button>
@@ -323,4 +331,4 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
   )
 }
 
-export default AddFornecedorModal
+export default EditFornecedorModal

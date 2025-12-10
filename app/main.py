@@ -5,7 +5,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.core.database import init_db
-from app.routers import auth_router, entidades_router, cameras, contratos, health
+from app.routers import auth_router, entidades_router, cameras, contratos, health, pncp
 from app.core.config import settings
 from app.core.rate_limit import limiter, rate_limit_exceeded_handler, exempt_from_rate_limit
 from app.core.security_headers import SecurityHeadersMiddleware, get_security_headers_config
@@ -84,6 +84,7 @@ app.include_router(auth_router.router)
 app.include_router(entidades_router.router)
 app.include_router(cameras.router)
 app.include_router(contratos.router)
+app.include_router(pncp.router)
 
 @app.get("/", response_model=dict)
 async def root():

@@ -92,6 +92,13 @@ export const isValidCNPJ = (cnpj) => {
 }
 
 /**
+ * Remove formatação do CPF (alias para unformatCNPJ)
+ */
+export const unformatCPF = (value) => {
+  return value ? value.replace(/\D/g, '') : ''
+}
+
+/**
  * Valida CPF
  */
 export const isValidCPF = (cpf) => {
@@ -156,6 +163,7 @@ export default {
   formatCPF,
   formatCNPJorCPF,
   unformatCNPJ,
+  unformatCPF,
   isValidCNPJ,
   isValidCPF,
   isValidCNPJorCPF,

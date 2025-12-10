@@ -4,6 +4,7 @@ import { useAuth } from '@contexts/AuthContext'
 import { getFornecedores, deleteFornecedor, getFornecedorPNCP } from '@services/fornecedoresService'
 import { formatCNPJorCPF, unformatCNPJ, isValidCNPJorCPF } from '@utils/cnpjUtils'
 import AddFornecedorModal from '@components/AddFornecedorModal'
+import EditFornecedorModal from '@components/EditFornecedorModal'
 import FornecedorDetailsModal from '@components/FornecedorDetailsModal'
 
 /**
@@ -42,6 +43,7 @@ function Fornecedores() {
   const [showPNCPModal, setShowPNCPModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [selectedFornecedor, setSelectedFornecedor] = useState(null)
   const [pncpData, setPncpData] = useState(null)
   const [pncpLoading, setPncpLoading] = useState(false)
@@ -188,10 +190,11 @@ function Fornecedores() {
 
   const handleDelete = async () => {
     try {
-      await deleteFornecedor(selectedFornecedor.id)
+      // Simular exclusão (remover do estado local)
+      setFornecedores(prev => prev.filter(f => f.id !== selectedFornecedor.id))
+      setTotalItems(prev => prev - 1)
       setShowDeleteModal(false)
       setSelectedFornecedor(null)
-      loadFornecedores()
       alert('Fornecedor deletado com sucesso!')
     } catch (err) {
       alert('Erro ao deletar fornecedor: ' + err.message)
@@ -578,14 +581,20 @@ function Fornecedores() {
                         <td className="px-4 py-4">
                           <div className="flex space-x-2">
                             <button
-                              onClick={() => navigate(`/fornecedores/${fornecedor.id}`)}
+                              onClick={() => {
+                                setSelectedFornecedor(fornecedor)
+                                setShowDetailsModal(true)
+                              }}
                               className="text-primary-600 hover:text-primary-900 text-sm font-medium"
                               title="Ver detalhes"
                             >
                               👁️
                             </button>
                             <button
-                              onClick={() => navigate(`/fornecedores/${fornecedor.id}/editar`)}
+                              onClick={() => {
+                                setSelectedFornecedor(fornecedor)
+                                setShowEditModal(true)
+                              }}
                               className="text-info-600 hover:text-info-900 text-sm font-medium"
                               title="Editar"
                             >
@@ -708,6 +717,22 @@ function Fornecedores() {
         }}
       />
 
+      {/* Modal Editar Fornecedor */}
+      <EditFornecedorModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setSelectedFornecedor(null)
+        }}
+        fornecedor={selectedFornecedor}
+        onSave={(updatedFornecedor) => {
+          setFornecedores(prev => prev.map(f => 
+            f.id === updatedFornecedor.id ? updatedFornecedor : f
+          ))
+          alert('Fornecedor atualizado com sucesso!')
+        }}
+      />
+
       {/* Modal Detalhes Fornecedor */}
       <FornecedorDetailsModal
         isOpen={showDetailsModal}
@@ -717,6 +742,159 @@ function Fornecedores() {
         }}
         fornecedor={selectedFornecedor}
       />
+
+      {/* Modal PNCP */}
+      {showPNCPModal && pncpData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold flex items-center gap-3">
+                    🔍 Dados do PNCP
+                  </h2>
+                  <p className="text-purple-100 text-sm mt-1">
+                    Informações do Portal Nacional de Contratações Públicas
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPNCPModal(false)
+                    setPncpData(null)
+                  }}
+                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+                  title="Fechar"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Conteúdo */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+              {/* Dados Cadastrais */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  📋 Dados Cadastrais
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">CNPJ</label>
+                    <p className="text-gray-900 font-mono">{formatCNPJorCPF(pncpData.cnpj)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Situação</label>
+                    <p className="text-green-600 font-semibold">{pncpData.situacao_cadastral}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Razão Social</label>
+                    <p className="text-gray-900">{pncpData.razao_social}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Nome Fantasia</label>
+                    <p className="text-gray-900">{pncpData.nome_fantasia}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Porte</label>
+                    <p className="text-gray-900">{pncpData.porte}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Data Abertura</label>
+                    <p className="text-gray-900">{new Date(pncpData.data_abertura).toLocaleDateString('pt-BR')}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Endereço */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  📍 Endereço
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-gray-600">Logradouro</label>
+                    <p className="text-gray-900">{pncpData.logradouro}, {pncpData.numero}</p>
+                    {pncpData.complemento && <p className="text-gray-600 text-sm">{pncpData.complemento}</p>}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Bairro</label>
+                    <p className="text-gray-900">{pncpData.bairro}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">CEP</label>
+                    <p className="text-gray-900 font-mono">{pncpData.cep}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">Município/UF</label>
+                    <p className="text-gray-900">{pncpData.municipio} - {pncpData.uf}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contratos */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  📄 Contratos no PNCP ({pncpData.total_contratos})
+                </h3>
+                <div className="space-y-3">
+                  {pncpData.contratos_pncp.map((contrato, index) => (
+                    <div key={index} className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-semibold text-gray-900">Contrato {contrato.numero}</h4>
+                          <p className="text-sm text-gray-600">{contrato.objeto}</p>
+                        </div>
+                        <span className="text-lg font-bold text-green-600">
+                          R$ {contrato.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">Assinatura:</span>{' '}
+                          <span className="text-gray-900">{new Date(contrato.data_assinatura).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Vigência:</span>{' '}
+                          <span className="text-gray-900">{new Date(contrato.vigencia).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-300">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-semibold text-gray-800">Valor Total:</span>
+                    <span className="text-2xl font-bold text-green-600">
+                      R$ {pncpData.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
+              <div className="flex justify-between items-center">
+                <p className="text-xs text-gray-500">
+                  Última atualização: {new Date(pncpData.ultima_atualizacao).toLocaleString('pt-BR')}
+                </p>
+                <button
+                  onClick={() => {
+                    setShowPNCPModal(false)
+                    setPncpData(null)
+                  }}
+                  className="px-6 py-2.5 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-12">
