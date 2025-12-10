@@ -1,30 +1,47 @@
-# 🛡️ Sentinela - Sistema de Autenticação com JWT + MFA TOTP
+# 🛡️ Sentinela
 
-[![Railway](https://img.shields.io/badge/Railway-Live-success?logo=railway)](https://web-production-8355.up.railway.app)
-[![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
-[![Tests](https://img.shields.io/badge/Tests-80%25-yellow)](./reports/test_report.html)
+**Vigilância Total, Risco Zero**
 
-Sistema robusto de autenticação com JWT (JSON Web Tokens) e MFA TOTP (Multi-Factor Authentication via Time-based One-Time Password), com controle de acesso baseado em roles.
+Sistema completo de monitoramento e gestão de contratos com integração PNCP.
 
-**🌐 Produção:** https://web-production-8355.up.railway.app
+[![Repository ID](https://img.shields.io/badge/Repository%20ID-1112237272-blue)](https://github.com/adrisa007/sentinela)
+[![Python](https://img.shields.io/badge/Python-3.11+-green)](https://www.python.org/)
+[![React](https://img.shields.io/badge/React-18.2-blue)](https://reactjs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-teal)](https://fastapi.tiangolo.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-## ✨ Características
+---
 
-- 🔐 **Autenticação JWT**: Tokens seguros e stateless
-- 📱 **MFA TOTP**: Autenticação de dois fatores via Google Authenticator/Authy
-- 👥 **Roles**: Sistema de permissões (ROOT, GESTOR, OPERADOR)
-- 🔒 **MFA Obrigatório**: Para ROOT e GESTOR
-- 📊 **API RESTful**: Documentação automática com Swagger
-- 🗄️ **Neon PostgreSQL**: Banco de dados serverless
-- ⚡ **Redis**: Cache e message broker
-- 🔄 **Celery**: Tarefas assíncronas
-- ✅ **Validação**: Schemas Pydantic robustos
-- 🏥 **Health Checks**: Monitoramento de saúde
+## 📋 Índice
 
-## 📋 Requisitos
+- [Sobre](#sobre)
+- [Arquitetura](#arquitetura)
+- [Tecnologias](#tecnologias)
+- [Instalação](#instalação)
+- [Uso](#uso)
+- [API](#api)
+- [Frontend](#frontend)
+- [Testes](#testes)
+- [Deploy](#deploy)
+- [Contribuição](#contribuição)
+- [Licença](#licença)
 
-- Python 3.12+
-- Docker & Docker Compose (para desenvolvimento local)
-- pip
+---
 
+## 🎯 Sobre
+
+Sentinela é um sistema completo de gestão e monitoramento de contratos públicos com integração ao Portal Nacional de Contratações Públicas (PNCP).
+
+### Features
+
+- ✅ **Autenticação** - JWT com MFA TOTP obrigatório (ROOT/GESTOR)
+- ✅ **Gestão de Fornecedores** - CRUD completo com consulta PNCP
+- ✅ **Gestão de Contratos** - Monitoramento e alertas
+- ✅ **Dashboard** - Métricas em tempo real
+- ✅ **Health Checks** - Monitoramento de sistema e banco
+- ✅ **API RESTful** - Documentação Swagger/ReDoc
+- ✅ **Frontend React** - Interface moderna e responsiva
+
+---
+
+## 🏗️ Arquitetura

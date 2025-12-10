@@ -1,12 +1,16 @@
+# ==========================================
+# .gitignore - adrisa007/sentinela
+# Repository ID: 1112237272
+# ==========================================
+
+# ==========================================
 # Python
+# ==========================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-venv/
-ENV/
-env/
 build/
 develop-eggs/
 dist/
@@ -22,75 +26,139 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-pip-log.txt
-pip-delete-this-directory.txt
+MANIFEST
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
-sentinela.db
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# ==========================================
+# Node.js / Frontend
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+*.local
 
 # Environment
 .env
 .env.local
-.env.*.local
-.venv
+.env.development.local
+.env.test.local
+.env.production.local
 
-# IDE
-.vscode/
-.idea/
+# Package lock (keep only in frontend/)
+package-lock.json
+yarn.lock
+
+# ==========================================
+# Database
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# PostgreSQL
+*.sql
+*.dump
+
+# ==========================================
+# Logs
+# ==========================================
+*.log
+logs/
+*.log.*
+
+# ==========================================
+# OS
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ==========================================
+# Editor / IDE
+# ==========================================
 *.swp
 *.swo
 *~
-.project
-.pydevproject
-.settings/
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
 
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Logs
-*.log
-logs/
-
+# ==========================================
 # Testing
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.hypothesis/
-.nox/
-*.cover
-coverage.xml
-*.coveragerc
+# ==========================================
+coverage/
+.nyc_output/
+*.lcov
 
-# Celery
-celerybeat-schedule*
-celery_pids.txt
-
-# Reports (generated files)
-reports/*.html
-reports/*.json
-reports/*.log
-
-# Temporary files
+# ==========================================
+# Temporary
+# ==========================================
+tmp/
+temp/
 *.tmp
-*.temp
-*_output.txt
-test_results.txt
-test_complete_report.txt
-
-# Backup
 *.bak
 *.backup
-*.old
 
-# Docker
-.docker/
+# ==========================================
+# Railway / Deploy
+# ==========================================
+.railway/
 
-# Migrations (if using Alembic)
-# migrations/versions/*.py  # Uncomment to ignore migration files
+# ==========================================
+# Secrets / Sensitive
+# ==========================================
+*.pem
+*.key
+*.cert
+secrets.yml
+.secrets/
+credentials.json
+
+# ==========================================
+# Documentation Build
+# ==========================================
+docs/_build/
+site/

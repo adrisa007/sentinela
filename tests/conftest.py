@@ -1,38 +1,69 @@
-"""
-Configuração global de testes - pytest fixtures
-Repositório: adrisa007/sentinela (ID: 1112237272)
-"""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import pytest
-from unittest.mock import patch
-from tests.helpers import mock_totp_validation, generate_valid_totp
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
-
-@pytest.fixture
-def mock_totp(monkeypatch):
-    """Fixture que mocka validação TOTP para sempre retornar True"""
-    mock_totp_validation(monkeypatch)
-    return generate_valid_totp()
-
-
-@pytest.fixture
-def disable_mfa(monkeypatch):
-    """Fixture que desabilita MFA completamente nos testes"""
-    def always_true(*args, **kwargs):
-        return True
-    
-    monkeypatch.setattr("app.core.dependencies.verify_totp", always_true)
-    monkeypatch.setattr("pyotp.TOTP.verify", always_true)
-
+from app.main import app
+from app.core.database import Base, get_db
 
 @pytest.fixture(autouse=True)
-def reset_database():
-    """Fixture que reseta o estado do database entre testes"""
-    # Aqui você pode adicionar lógica para limpar o DB
-    yield
-    # Cleanup após o teste
-
+def mock_totp(monkeypatch):
+    """Auto-mock TOTP verification"""
+    monkeypatch.setattr("app.core.auth.verify_totp", lambda *args, **kwargs: True)
+    monkeypatch.setattr("app.core.dependencies.verify_totp", lambda *args, **kwargs: True)
 
 @pytest.fixture
-def valid_totp_code():
-    """Fixture que retorna um código TOTP válido"""
-    return generate_valid_totp()
+def db_engine():
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+    yield engine
+    Base.metadata.drop_all(bind=engine)
+
+@pytest.fixture
+def db_session(db_engine):
+    Session = sessionmaker(bind=db_engine)
+    session = Session()
+    try:
+        yield session
+    finally:
+        session.close()
+
+@pytest.fixture
+def client(db_session):
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()
+
+# ==========================================
+# MOCK REDIS (para testes sem Redis)
+# ==========================================
+
+@pytest.fixture(autouse=True)
+def mock_redis_always(monkeypatch):
+    """Mock Redis para todos os testes que precisam"""
+    class MockRedisClient:
+        def ping(self):
+            return True
+        
+        def get(self, key):
+            return None
+        
+        def set(self, key, value, ex=None):
+            return True
+    
+    try:
+        import app.redis_client
+        monkeypatch.setattr(app.redis_client, "redis_client", MockRedisClient())
+    except:
+        pass
