@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@contexts/AuthContext'
-import { getFornecedores, deleteFornecedor, getFornecedorPNCP } from '@services/fornecedoresService'
+import { getFornecedores, deleteFornecedor, getFornecedorPNCP, testPNCPConnection } from '@services/fornecedoresService'
 import { formatCNPJorCPF, unformatCNPJ, isValidCNPJorCPF } from '@utils/cnpjUtils'
 import AddFornecedorModal from '@components/AddFornecedorModal'
 import EditFornecedorModal from '@components/EditFornecedorModal'
@@ -203,18 +203,37 @@ function Fornecedores() {
 
   const handleSearchPNCP = async (cnpj) => {
     try {
-      console.log('Iniciando consulta PNCP para CNPJ:', cnpj)
+      console.log('🔍 Iniciando consulta PNCP para CNPJ:', cnpj)
       setPncpLoading(true)
       const cnpjLimpo = unformatCNPJ(cnpj)
-      console.log('CNPJ limpo:', cnpjLimpo)
+      console.log('📝 CNPJ limpo:', cnpjLimpo)
+      
+      // Primeiro testar conexão sem auth
+      console.log('🧪 Testando conexão básica...')
+      const testResult = await testPNCPConnection(cnpjLimpo)
+      console.log('✅ Conexão OK:', testResult)
+      
+      // Agora tentar com autenticação
+      console.log('🔐 Chamando endpoint autenticado...')
       const data = await getFornecedorPNCP(cnpjLimpo)
-      console.log('Dados recebidos do PNCP:', data)
+      console.log('✅ Dados recebidos do PNCP:', data)
       setPncpData(data)
       setShowPNCPModal(true)
     } catch (err) {
-      console.error('Erro completo:', err)
-      console.error('Response:', err.response)
-      alert('Erro ao buscar no PNCP: ' + (err.response?.data?.detail || err.message))
+      console.error('❌ Erro completo:', err)
+      console.error('❌ Response:', err.response)
+      console.error('❌ Config:', err.config)
+      
+      let errorMsg = 'Erro ao buscar no PNCP: '
+      if (err.message === 'Network Error') {
+        errorMsg += 'Erro de conexão. Verifique se o backend está rodando.'
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
+        errorMsg += 'Não autenticado. Faça login novamente.'
+      } else {
+        errorMsg += (err.response?.data?.detail || err.message)
+      }
+      
+      alert(errorMsg)
     } finally {
       setPncpLoading(false)
     }

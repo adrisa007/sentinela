@@ -262,3 +262,23 @@ async def listar_contratos_fornecedor(
             status_code=500,
             detail=f"Erro ao listar contratos: {str(e)}"
         )
+
+
+@router.get("/test/{cnpj}")
+async def test_pncp_no_auth(cnpj: str):
+    """
+    🔧 ENDPOINT DE TESTE - SEM AUTENTICAÇÃO
+    Usado apenas para debug/diagnóstico
+    """
+    cnpj_limpo = ''.join(filter(str.isdigit, cnpj))
+    
+    if len(cnpj_limpo) != 14:
+        return {"error": "CNPJ inválido"}
+    
+    return {
+        "success": True,
+        "message": "Endpoint PNCP funcionando!",
+        "cnpj": cnpj_limpo,
+        "test": True,
+        "timestamp": datetime.now().isoformat()
+    }

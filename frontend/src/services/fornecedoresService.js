@@ -90,6 +90,21 @@ export const getFornecedorPNCP = async (cnpj) => {
 }
 
 /**
+ * 🔧 Teste do endpoint PNCP sem autenticação (debug)
+ */
+export const testPNCPConnection = async (cnpj) => {
+  try {
+    console.log('🧪 TESTE: Chamando endpoint sem auth:', `/pncp/test/${cnpj}`)
+    const response = await api.get(`/pncp/test/${cnpj}`)
+    console.log('🧪 TESTE: Resposta recebida:', response.data)
+    return response.data
+  } catch (error) {
+    console.error('🧪 TESTE: Erro na conexão:', error)
+    throw error
+  }
+}
+
+/**
  * Criar novo fornecedor
  */
 export const createFornecedor = async (fornecedorData) => {
