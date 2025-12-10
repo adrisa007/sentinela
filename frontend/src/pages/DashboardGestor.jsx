@@ -1,269 +1,51 @@
 import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@contexts/AuthContext'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement,
-} from 'chart.js'
-import { Bar, Doughnut, Line } from 'react-chartjs-2'
-import api from '@services/api'
-
-// Registrar componentes do Chart.js
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement
-)
 
 /**
- * Dashboard Gestor para adrisa007/sentinela (ID: 1112237272)
+ * Dashboard Gestor - adrisa007/sentinela (ID: 1112237272)
  * 
- * Features:
- * - Gráfico % Execução de Contratos
- * - Gráfico de Riscos por Categoria
- * - Lista de Contratos Ativos
- * - Alertas de Certidões Vencendo
- * - Integração com API via Axios
+ * Dashboard completo para perfil GESTOR com:
+ * - Visão geral de entidades
+ * - Estatísticas de contratos
+ * - Ações rápidas
+ * - Notificações
  */
 
 function DashboardGestor() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
-  const [contratos, setContratos] = useState([])
-  const [alertas, setAlertas] = useState([])
-  const [metricas, setMetricas] = useState({
+  const [stats, setStats] = useState({
+    totalEntidades: 0,
+    entidadesAtivas: 0,
     totalContratos: 0,
     contratosAtivos: 0,
-    valorTotal: 0,
-    percentualMedioExecucao: 0,
+    alertas: 0,
   })
 
-  // ==========================================
-  // CARREGAR DADOS DA API
-  // ==========================================
   useEffect(() => {
-    carregarDados()
+    // Simular carregamento de dados
+    setTimeout(() => {
+      setStats({
+        totalEntidades: 45,
+        entidadesAtivas: 38,
+        totalContratos: 127,
+        contratosAtivos: 98,
+        alertas: 5,
+      })
+      setLoading(false)
+    }, 1000)
   }, [])
 
-  const carregarDados = async () => {
-    setLoading(true)
-    try {
-      // Buscar contratos
-      const { data: contratosData } = await api.get('/contratos')
-      setContratos(contratosData)
-
-      // Buscar alertas de certidões
-      const { data: alertasData } = await api.get('/contratos/alertas/certidoes')
-      setAlertas(alertasData)
-
-      // Calcular métricas
-      calcularMetricas(contratosData)
-
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error)
-      // Usar dados mock em caso de erro
-      usarDadosMock()
-    } finally {
-      setLoading(false)
-    }
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
   }
 
-  const calcularMetricas = (contratos) => {
-    const ativos = contratos.filter(c => c.status === 'ATIVO')
-    const valorTotal = ativos.reduce((sum, c) => sum + (c.valor || 0), 0)
-    const percentualMedio = ativos.reduce((sum, c) => sum + (c.percentual_execucao || 0), 0) / (ativos.length || 1)
-
-    setMetricas({
-      totalContratos: contratos.length,
-      contratosAtivos: ativos.length,
-      valorTotal,
-      percentualMedioExecucao: percentualMedio,
-    })
-  }
-
-  const usarDadosMock = () => {
-    // Dados de exemplo para desenvolvimento/demo
-    const contratosMock = [
-      {
-        id: 1,
-        numero: 'CONT-2024-001',
-        descricao: 'Serviços de Vigilância',
-        valor: 150000,
-        percentual_execucao: 75,
-        status: 'ATIVO',
-        data_inicio: '2024-01-15',
-        data_fim: '2024-12-31',
-        fornecedor: 'Empresa de Segurança XYZ',
-      },
-      {
-        id: 2,
-        numero: 'CONT-2024-002',
-        descricao: 'Manutenção de Câmeras',
-        valor: 80000,
-        percentual_execucao: 45,
-        status: 'ATIVO',
-        data_inicio: '2024-02-01',
-        data_fim: '2024-12-31',
-        fornecedor: 'TechSecurity Ltda',
-      },
-      {
-        id: 3,
-        numero: 'CONT-2024-003',
-        descricao: 'Sistemas de Alarme',
-        valor: 120000,
-        percentual_execucao: 90,
-        status: 'ATIVO',
-        data_inicio: '2024-01-10',
-        data_fim: '2024-12-31',
-        fornecedor: 'SecureTech Brasil',
-      },
-    ]
-
-    const alertasMock = [
-      {
-        id: 1,
-        tipo: 'CERTIDAO_VENCENDO',
-        contrato_numero: 'CONT-2024-001',
-        mensagem: 'Certidão Negativa de Débitos vence em 15 dias',
-        dias_restantes: 15,
-        prioridade: 'ALTA',
-      },
-      {
-        id: 2,
-        tipo: 'CERTIDAO_VENCIDA',
-        contrato_numero: 'CONT-2024-002',
-        mensagem: 'Certidão FGTS vencida há 5 dias',
-        dias_restantes: -5,
-        prioridade: 'CRITICA',
-      },
-    ]
-
-    setContratos(contratosMock)
-    setAlertas(alertasMock)
-    calcularMetricas(contratosMock)
-  }
-
-  // ==========================================
-  // CONFIGURAÇÃO DOS GRÁFICOS
-  // ==========================================
-
-  // Gráfico de % Execução de Contratos
-  const execucaoChartData = {
-    labels: contratos.map(c => c.numero),
-    datasets: [
-      {
-        label: '% Execução',
-        data: contratos.map(c => c.percentual_execucao || 0),
-        backgroundColor: [
-          'rgba(75, 192, 192, 0.6)',
-          'rgba(54, 162, 235, 0.6)',
-          'rgba(255, 206, 86, 0.6)',
-          'rgba(153, 102, 255, 0.6)',
-        ],
-        borderColor: [
-          'rgba(75, 192, 192, 1)',
-          'rgba(54, 162, 235, 1)',
-          'rgba(255, 206, 86, 1)',
-          'rgba(153, 102, 255, 1)',
-        ],
-        borderWidth: 2,
-      },
-    ],
-  }
-
-  const execucaoChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      title: {
-        display: true,
-        text: 'Percentual de Execução por Contrato',
-        font: {
-          size: 16,
-          weight: 'bold',
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        max: 100,
-        ticks: {
-          callback: (value) => value + '%',
-        },
-      },
-    },
-  }
-
-  // Gráfico de Riscos
-  const riscosData = {
-    labels: ['Baixo', 'Médio', 'Alto', 'Crítico'],
-    datasets: [
-      {
-        label: 'Contratos por Nível de Risco',
-        data: [
-          contratos.filter(c => (c.percentual_execucao || 0) > 80).length,
-          contratos.filter(c => (c.percentual_execucao || 0) > 50 && (c.percentual_execucao || 0) <= 80).length,
-          contratos.filter(c => (c.percentual_execucao || 0) > 20 && (c.percentual_execucao || 0) <= 50).length,
-          contratos.filter(c => (c.percentual_execucao || 0) <= 20).length,
-        ],
-        backgroundColor: [
-          'rgba(75, 192, 192, 0.6)',
-          'rgba(255, 206, 86, 0.6)',
-          'rgba(255, 159, 64, 0.6)',
-          'rgba(255, 99, 132, 0.6)',
-        ],
-        borderColor: [
-          'rgba(75, 192, 192, 1)',
-          'rgba(255, 206, 86, 1)',
-          'rgba(255, 159, 64, 1)',
-          'rgba(255, 99, 132, 1)',
-        ],
-        borderWidth: 2,
-      },
-    ],
-  }
-
-  const riscosOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom',
-      },
-      title: {
-        display: true,
-        text: 'Distribuição de Riscos',
-        font: {
-          size: 16,
-          weight: 'bold',
-        },
-      },
-    },
-  }
-
-  // ==========================================
-  // RENDER LOADING
-  // ==========================================
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50">
         <div className="text-center">
           <div className="spinner w-16 h-16 border-primary-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Carregando dashboard...</p>
@@ -272,201 +54,280 @@ function DashboardGestor() {
     )
   }
 
-  // ==========================================
-  // RENDER DASHBOARD
-  // ==========================================
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard Gestor</h1>
-          <p className="text-gray-600 mt-1">
-            Bem-vindo, {user?.username} ({user?.role})
+      <header className="bg-white shadow-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">🛡️</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Sentinela</h1>
+                <p className="text-xs text-gray-500">Dashboard Gestor</p>
+              </div>
+            </div>
+
+            {/* User Menu */}
+            <div className="flex items-center space-x-4">
+              <div className="hidden md:block text-right">
+                <p className="text-sm font-medium text-gray-900">{user?.email}</p>
+                <p className="text-xs text-gray-500">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                    👤 {user?.role || 'GESTOR'}
+                  </span>
+                </p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="btn-ghost text-sm"
+              >
+                🚪 Sair
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            Olá, {user?.email?.split('@')[0] || 'Gestor'}! 👋
+          </h2>
+          <p className="text-gray-600">
+            Bem-vindo ao painel de controle. Aqui você pode visualizar e gerenciar entidades.
           </p>
         </div>
-        <button
-          onClick={carregarDados}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <span>🔄</span>
-          <span>Atualizar</span>
-        </button>
-      </div>
 
-      {/* Cards de Métricas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          icon="📋"
-          label="Total de Contratos"
-          value={metricas.totalContratos}
-          color="blue"
-        />
-        <MetricCard
-          icon="✅"
-          label="Contratos Ativos"
-          value={metricas.contratosAtivos}
-          color="green"
-        />
-        <MetricCard
-          icon="💰"
-          label="Valor Total"
-          value={`R$ ${metricas.valorTotal.toLocaleString('pt-BR')}`}
-          color="purple"
-        />
-        <MetricCard
-          icon="📊"
-          label="Execução Média"
-          value={`${metricas.percentualMedioExecucao.toFixed(1)}%`}
-          color="orange"
-        />
-      </div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Total Entidades */}
+          <div className="card card-body hover:shadow-xl transition-shadow cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Entidades</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {stats.totalEntidades}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {stats.entidadesAtivas} ativas
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">🏢</span>
+              </div>
+            </div>
+          </div>
 
-      {/* Alertas de Certidões */}
-      {alertas.length > 0 && (
-        <div className="card card-body bg-yellow-50 border-2 border-yellow-400">
-          <h2 className="text-xl font-semibold mb-4 flex items-center space-x-2">
-            <span>⚠️</span>
-            <span>Alertas de Certidões ({alertas.length})</span>
-          </h2>
-          <div className="space-y-3">
-            {alertas.map((alerta) => (
-              <AlertaItem key={alerta.id} alerta={alerta} />
-            ))}
+          {/* Entidades Ativas */}
+          <div className="card card-body hover:shadow-xl transition-shadow cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Entidades Ativas</p>
+                <p className="text-3xl font-bold text-success-600 mt-2">
+                  {stats.entidadesAtivas}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {((stats.entidadesAtivas / stats.totalEntidades) * 100).toFixed(0)}% do total
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">✅</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Total Contratos */}
+          <div className="card card-body hover:shadow-xl transition-shadow cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Contratos</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {stats.totalContratos}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {stats.contratosAtivos} ativos
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">📄</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Alertas */}
+          <div className="card card-body hover:shadow-xl transition-shadow cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Alertas</p>
+                <p className="text-3xl font-bold text-warning-600 mt-2">
+                  {stats.alertas}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Requerem atenção
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">⚠️</span>
+              </div>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico de Execução */}
-        <div className="card card-body">
-          <div style={{ height: '300px' }}>
-            <Bar data={execucaoChartData} options={execucaoChartOptions} />
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Ações Rápidas</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Ver Entidades */}
+            <Link
+              to="/entidades"
+              className="card card-body hover:shadow-xl transition-all hover:scale-105 cursor-pointer group"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-primary-100 rounded-lg flex items-center justify-center group-hover:bg-primary-200 transition">
+                  <span className="text-3xl">🏢</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Ver Entidades</h4>
+                  <p className="text-sm text-gray-600">Visualizar todas as entidades</p>
+                </div>
+              </div>
+            </Link>
+
+            {/* Ver Contratos */}
+            <Link
+              to="/contratos"
+              className="card card-body hover:shadow-xl transition-all hover:scale-105 cursor-pointer group"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition">
+                  <span className="text-3xl">📄</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Ver Contratos</h4>
+                  <p className="text-sm text-gray-600">Gerenciar contratos</p>
+                </div>
+              </div>
+            </Link>
+
+            {/* Relatórios */}
+            <Link
+              to="/relatorios"
+              className="card card-body hover:shadow-xl transition-all hover:scale-105 cursor-pointer group"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-info-100 rounded-lg flex items-center justify-center group-hover:bg-info-200 transition">
+                  <span className="text-3xl">📊</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Relatórios</h4>
+                  <p className="text-sm text-gray-600">Gerar relatórios</p>
+                </div>
+              </div>
+            </Link>
           </div>
         </div>
 
-        {/* Gráfico de Riscos */}
-        <div className="card card-body">
-          <div style={{ height: '300px' }}>
-            <Doughnut data={riscosData} options={riscosOptions} />
+        {/* Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Entidades Recentes */}
+          <div className="card">
+            <div className="card-body">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">
+                📋 Entidades Recentes
+              </h3>
+              <div className="space-y-3">
+                {[
+                  { name: 'Prefeitura Municipal', status: 'ATIVA', cnpj: '12.345.678/0001-90' },
+                  { name: 'Câmara de Vereadores', status: 'ATIVA', cnpj: '98.765.432/0001-10' },
+                  { name: 'Secretaria de Saúde', status: 'EM_ANALISE', cnpj: '11.222.333/0001-44' },
+                ].map((entidade, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900">{entidade.name}</p>
+                      <p className="text-xs text-gray-500">{entidade.cnpj}</p>
+                    </div>
+                    <span className={`badge ${
+                      entidade.status === 'ATIVA' ? 'badge-success' : 'bg-warning-100 text-warning-800'
+                    }`}>
+                      {entidade.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Notificações */}
+          <div className="card">
+            <div className="card-body">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">
+                🔔 Notificações
+              </h3>
+              <div className="space-y-3">
+                {[
+                  { type: 'warning', message: 'Contrato vencendo em 7 dias', time: '2h atrás' },
+                  { type: 'info', message: 'Nova entidade cadastrada', time: '5h atrás' },
+                  { type: 'success', message: 'Relatório mensal gerado', time: '1d atrás' },
+                ].map((notification, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                  >
+                    <span className="text-xl">
+                      {notification.type === 'warning' && '⚠️'}
+                      {notification.type === 'info' && 'ℹ️'}
+                      {notification.type === 'success' && '✅'}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        {notification.message}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {notification.time}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
 
-      {/* Lista de Contratos */}
-      <div className="card card-body">
-        <h2 className="text-2xl font-semibold mb-4">Contratos Ativos</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Número</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Descrição</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Fornecedor</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Valor</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">% Execução</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">Status</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {contratos.map((contrato) => (
-                <ContratoRow key={contrato.id} contrato={contrato} />
-              ))}
-            </tbody>
-          </table>
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <p className="text-sm text-gray-600">
+              © 2024 Sentinela. Todos os direitos reservados.
+            </p>
+            <div className="flex space-x-4 mt-4 md:mt-0">
+              <a href="/docs" className="text-sm text-gray-600 hover:text-primary-600">
+                📚 Documentação
+              </a>
+              <a href="/suporte" className="text-sm text-gray-600 hover:text-primary-600">
+                💬 Suporte
+              </a>
+              <a href="https://github.com/adrisa007/sentinela" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-600 hover:text-primary-600">
+                🐙 GitHub
+              </a>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 text-center mt-4">
+            Repository: adrisa007/sentinela | ID: 1112237272
+          </p>
         </div>
-      </div>
+      </footer>
     </div>
-  )
-}
-
-// ==========================================
-// COMPONENTES AUXILIARES
-// ==========================================
-
-function MetricCard({ icon, label, value, color }) {
-  const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    purple: 'bg-purple-50 text-purple-600',
-    orange: 'bg-orange-50 text-orange-600',
-  }
-
-  return (
-    <div className="card card-body">
-      <div className="flex items-center space-x-4">
-        <div className={`text-4xl p-3 rounded-lg ${colorClasses[color]}`}>
-          {icon}
-        </div>
-        <div>
-          <p className="text-sm text-gray-600">{label}</p>
-          <p className="text-2xl font-bold">{value}</p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function AlertaItem({ alerta }) {
-  const prioridadeColors = {
-    CRITICA: 'bg-red-100 text-red-800 border-red-300',
-    ALTA: 'bg-orange-100 text-orange-800 border-orange-300',
-    MEDIA: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  }
-
-  return (
-    <div className={`p-3 rounded-lg border-2 ${prioridadeColors[alerta.prioridade] || 'bg-gray-100'}`}>
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="font-semibold">{alerta.contrato_numero}</p>
-          <p className="text-sm">{alerta.mensagem}</p>
-        </div>
-        <span className="badge badge-danger">{alerta.prioridade}</span>
-      </div>
-    </div>
-  )
-}
-
-function ContratoRow({ contrato }) {
-  const getProgressColor = (percentual) => {
-    if (percentual >= 80) return 'bg-green-500'
-    if (percentual >= 50) return 'bg-yellow-500'
-    if (percentual >= 20) return 'bg-orange-500'
-    return 'bg-red-500'
-  }
-
-  return (
-    <tr className="hover:bg-gray-50 transition">
-      <td className="px-4 py-3 text-sm font-medium">{contrato.numero}</td>
-      <td className="px-4 py-3 text-sm">{contrato.descricao}</td>
-      <td className="px-4 py-3 text-sm">{contrato.fornecedor}</td>
-      <td className="px-4 py-3 text-sm text-right">
-        R$ {(contrato.valor || 0).toLocaleString('pt-BR')}
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex items-center justify-center space-x-2">
-          <div className="w-full bg-gray-200 rounded-full h-2 max-w-[100px]">
-            <div
-              className={`h-2 rounded-full ${getProgressColor(contrato.percentual_execucao || 0)}`}
-              style={{ width: `${contrato.percentual_execucao || 0}%` }}
-            ></div>
-          </div>
-          <span className="text-sm font-medium">
-            {(contrato.percentual_execucao || 0).toFixed(0)}%
-          </span>
-        </div>
-      </td>
-      <td className="px-4 py-3 text-center">
-        <span className="badge badge-success">{contrato.status}</span>
-      </td>
-      <td className="px-4 py-3 text-center">
-        <button className="text-primary-600 hover:text-primary-700 text-sm">
-          Ver Detalhes →
-        </button>
-      </td>
-    </tr>
   )
 }
 
