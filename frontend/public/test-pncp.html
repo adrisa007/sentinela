@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste PNCP - Debug</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>🧪 Teste de Conexão PNCP</h1>
+    <div id="result"></div>
+    
+    <script>
+        const resultDiv = document.getElementById('result');
+        
+        // Detectar ambiente
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const isCodespaces = window.location.hostname.includes('github.dev') || window.location.hostname.includes('preview.app.github.dev');
+        
+        let API_URL;
+        if (isLocalhost) {
+            API_URL = 'http://localhost:8000';
+        } else if (isCodespaces) {
+            API_URL = window.location.origin.replace('-3000.', '-8000.');
+        } else {
+            API_URL = window.location.origin;
+        }
+        
+        resultDiv.innerHTML = `
+            <p>🌐 <strong>Hostname:</strong> ${window.location.hostname}</p>
+            <p>🔗 <strong>Origin:</strong> ${window.location.origin}</p>
+            <p>📡 <strong>API_URL detectada:</strong> ${API_URL}</p>
+            <p>⏳ Testando conexão...</p>
+        `;
+        
+        // Testar conexão
+        axios.get(API_URL + '/pncp/test/12345678000190')
+            .then(response => {
+                resultDiv.innerHTML += `
+                    <p style="color: green;">✅ <strong>SUCESSO!</strong></p>
+                    <pre>${JSON.stringify(response.data, null, 2)}</pre>
+                `;
+            })
+            .catch(error => {
+                resultDiv.innerHTML += `
+                    <p style="color: red;">❌ <strong>ERRO:</strong> ${error.message}</p>
+                    <p>Detalhes: ${error.response ? JSON.stringify(error.response.data) : 'Network Error'}</p>
+                `;
+                console.error('Erro completo:', error);
+            });
+    </script>
+</body>
+</html>
