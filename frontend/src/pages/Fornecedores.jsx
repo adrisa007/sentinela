@@ -38,6 +38,8 @@ function Fornecedores() {
   // Modals
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showPNCPModal, setShowPNCPModal] = useState(false)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [selectedFornecedor, setSelectedFornecedor] = useState(null)
   const [pncpData, setPncpData] = useState(null)
   const [pncpLoading, setPncpLoading] = useState(false)
@@ -319,7 +321,7 @@ function Fornecedores() {
               </p>
             </div>
             <button
-              onClick={() => navigate('/fornecedores/novo')}
+              onClick={() => setShowAddModal(true)}
               className="mt-4 md:mt-0 btn-primary"
             >
               ➕ Novo Fornecedor
