@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@contexts/AuthContext'
 import { getFornecedores, deleteFornecedor, getFornecedorPNCP } from '@services/fornecedoresService'
 import { formatCNPJorCPF, unformatCNPJ, isValidCNPJorCPF } from '@utils/cnpjUtils'
+import AddFornecedorModal from '@components/AddFornecedorModal'
+import FornecedorDetailsModal from '@components/FornecedorDetailsModal'
 
 /**
  * Página de Fornecedores com Filtro CNPJ - adrisa007/sentinela (ID: 1112237272)
@@ -691,6 +693,30 @@ function Fornecedores() {
           </div>
         </div>
       )}
+
+      {/* Modal Adicionar Fornecedor */}
+      <AddFornecedorModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSave={(newFornecedor) => {
+          setFornecedores(prev => [...prev, {
+            ...newFornecedor,
+            id: Date.now(),
+          }])
+          setTotalItems(prev => prev + 1)
+          alert('Fornecedor adicionado com sucesso!')
+        }}
+      />
+
+      {/* Modal Detalhes Fornecedor */}
+      <FornecedorDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false)
+          setSelectedFornecedor(null)
+        }}
+        fornecedor={selectedFornecedor}
+      />
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-12">

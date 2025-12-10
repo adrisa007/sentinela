@@ -221,28 +221,28 @@ function AddFornecedorModal({ isOpen, onClose, onSave }) {
               )}
             </div>
           </div>
-        </form>
 
-        {/* Footer */}
-        <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={loading}
-              className="btn-ghost"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="btn-primary disabled:opacity-50"
-            >
-              {loading ? '⏳ Salvando...' : '✅ Salvar Fornecedor'}
-            </button>
+          {/* Footer */}
+          <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 -mx-6 -mb-6 mt-6">
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={loading}
+                className="btn-ghost"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary disabled:opacity-50"
+              >
+                {loading ? '⏳ Salvando...' : '✅ Salvar Fornecedor'}
+              </button>
+            </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   )
