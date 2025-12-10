@@ -4,7 +4,25 @@
  */
 import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// Detectar ambiente e configurar API_URL automaticamente
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+const isCodespaces = window.location.hostname.includes('github.dev') || window.location.hostname.includes('preview.app.github.dev')
+
+let API_URL
+
+if (isLocalhost) {
+  // Ambiente local: usar localhost:8000
+  API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+} else if (isCodespaces) {
+  // GitHub Codespaces: trocar porta 3000 por 8000 na mesma URL
+  API_URL = window.location.origin.replace('-3000.', '-8000.')
+} else {
+  // Produção ou outro ambiente: usar mesmo domínio
+  API_URL = window.location.origin
+}
+
+console.log('🌐 Ambiente:', isLocalhost ? 'Local' : isCodespaces ? 'Codespaces' : 'Produção')
+console.log('🔗 API_URL:', API_URL)
 
 const api = axios.create({
   baseURL: API_URL,
