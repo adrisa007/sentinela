@@ -12,18 +12,10 @@ export default defineConfig({
       '@services': path.resolve(__dirname, './src/services'),
       '@contexts': path.resolve(__dirname, './src/contexts'),
       '@utils': path.resolve(__dirname, './src/utils'),
-      '@assets': path.resolve(__dirname, './src/assets'),
     },
   },
   server: {
     port: 3000,
     host: true,
-    proxy: {
-      '/api': {
-        target: 'http://0.0.0.0:8080',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-    },
   },
 })

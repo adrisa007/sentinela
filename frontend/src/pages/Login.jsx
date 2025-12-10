@@ -1,14 +1,44 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  
+  const { login } = useAuth()
+  const navigate = useNavigate()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log('Login:', { email, password })
-    alert('Login em desenvolvimento!')
+    setLoading(true)
+    setError('')
+
+    try {
+      // Simular login (substituir por chamada real à API)
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Mock de resposta do backend
+      const mockUser = {
+        id: 1,
+        email: email,
+        role: 'GESTOR',
+        name: email.split('@')[0]
+      }
+      const mockToken = 'mock-jwt-token-' + Date.now()
+
+      // Fazer login
+      login(mockUser, mockToken)
+
+      // Redirecionar para dashboard do gestor
+      navigate('/dashboard/gestor')
+    } catch (err) {
+      setError('Erro ao fazer login. Tente novamente.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -29,6 +59,12 @@ function Login() {
 
         {/* Login Card */}
         <div className="card card-body">
+          {error && (
+            <div className="mb-4 p-3 bg-danger-50 border border-danger-200 rounded-lg text-danger-800 text-sm">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
@@ -41,7 +77,7 @@ function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="form-input"
-                placeholder="admin@sentinela.com"
+                placeholder="gestor@sentinela.com"
                 required
                 autoFocus
               />
@@ -81,9 +117,17 @@ function Login() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full btn-primary py-3 text-base font-semibold"
+              disabled={loading}
+              className="w-full btn-primary py-3 text-base font-semibold disabled:opacity-50"
             >
-              🔓 Entrar
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <span className="spinner w-5 h-5 border-white mr-2"></span>
+                  Entrando...
+                </span>
+              ) : (
+                '🔓 Entrar'
+              )}
             </button>
           </form>
 
@@ -95,6 +139,9 @@ function Login() {
             >
               ← Voltar para Home
             </Link>
+            <p className="text-xs text-gray-500">
+              Use qualquer email para testar (modo desenvolvimento)
+            </p>
           </div>
         </div>
 
