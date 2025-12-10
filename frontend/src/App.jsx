@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import HomePage from './pages/HomePage'
 import Login from './pages/Login'
 import DashboardGestor from './pages/DashboardGestor'
+import Fornecedores from './pages/Fornecedores'
 import ProtectedRoute from './components/ProtectedRoute'
 
 /**
@@ -23,6 +24,15 @@ function App() {
           element={
             <ProtectedRoute>
               <DashboardGestor />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/fornecedores" 
+          element={
+            <ProtectedRoute>
+              <Fornecedores />
             </ProtectedRoute>
           } 
         />

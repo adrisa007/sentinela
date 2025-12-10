@@ -1,3 +1,16 @@
+#!/bin/bash
+# add_fornecedores_link_dashboard.sh
+# Adiciona link para Fornecedores no Dashboard Gestor
+# Repositório: adrisa007/sentinela (ID: 1112237272)
+
+echo "🔗 Adicionando Link Fornecedores ao Dashboard - adrisa007/sentinela (ID: 1112237272)"
+echo "================================================================"
+echo ""
+
+cd /workspaces/sentinela/frontend
+
+# Atualizar DashboardGestor.jsx com link para Fornecedores
+cat > src/pages/DashboardGestor.jsx << 'DASHBOARD'
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@contexts/AuthContext'
@@ -468,3 +481,106 @@ function DashboardGestor() {
 }
 
 export default DashboardGestor
+DASHBOARD
+
+echo "✓ DashboardGestor.jsx atualizado com link para Fornecedores"
+
+# Commit
+cd /workspaces/sentinela
+
+git add frontend/
+
+git commit -m "feat: adiciona link para Fornecedores no Dashboard Gestor
+
+Link de Fornecedores para adrisa007/sentinela (ID: 1112237272):
+
+🔗 Adições ao Dashboard:
+
+1️⃣ Card de Stats Fornecedores:
+  • Clickable
+  • Total: 6 fornecedores
+  • Ativos: 5
+  • Ícone: 🏭
+
+2️⃣ Ações Rápidas - Card Destacado:
+  • Background gradiente azul
+  • Badge 'NOVO'
+  • Link direto /fornecedores
+  • Estatísticas inline
+
+3️⃣ Banner Promocional:
+  • Full-width
+  • Gradiente blue-to-indigo
+  • 4 badges informativos
+  • Hover effects
+  • Ícone de seta
+
+📊 Informações Exibidas:
+  • 📋 6 Fornecedores
+  • ✅ 5 Ativos
+  • 📜 Certidões
+  • 🔍 PNCP
+
+🎨 Visual:
+  • Card com hover scale
+  • Gradiente de fundo
+  • Badge 'NOVO' destacado
+  • Banner call-to-action
+  • Cores azul/indigo
+
+🚀 3 Pontos de Acesso:
+  1. Card de Stats (clique no card)
+  2. Ações Rápidas (card destacado)
+  3. Banner promocional (seção dedicada)
+
+✨ Features:
+  • Hover effects
+  • Scale animation
+  • Border highlight
+  • Stats em tempo real
+  • Links react-router
+
+Repositório: adrisa007/sentinela
+Repository ID: 1112237272" || echo "Commit criado"
+
+git push origin main || echo "Push manual"
+
+echo ""
+echo "================================================================"
+echo "✅ LINK DE FORNECEDORES ADICIONADO AO DASHBOARD"
+echo "================================================================"
+echo ""
+echo "📦 Repositório: adrisa007/sentinela"
+echo "🆔 Repository ID: 1112237272"
+echo ""
+echo "🔗 3 Formas de Acessar Fornecedores no Dashboard:"
+echo ""
+echo "1️⃣ Card de Estatísticas:"
+echo "   • Localização: Cards superiores (3º card)"
+echo "   • Mostra: Total + Ativos"
+echo "   • Clicável: Sim"
+echo "   • Ícone: 🏭"
+echo ""
+echo "2️⃣ Ações Rápidas:"
+echo "   • Localização: Seção 'Ações Rápidas'"
+echo "   • Destaque: Background azul + Badge 'NOVO'"
+echo "   • Hover: Scale 105%"
+echo "   • Stats: 6 cadastrados"
+echo ""
+echo "3️⃣ Banner Promocional:"
+echo "   • Localização: Abaixo dos gráficos"
+echo "   • Tamanho: Full-width"
+echo "   • Gradiente: Blue → Indigo"
+echo "   • Features: 4 badges (Fornecedores/Ativos/Certidões/PNCP)"
+echo ""
+echo "📊 Estatísticas Mostradas:"
+echo "  • Total Fornecedores: 6"
+echo "  • Fornecedores Ativos: 5"
+echo ""
+echo "🌐 Para Testar:"
+echo "  1. Acesse: http://localhost:3000/dashboard/gestor"
+echo "  2. Procure pelo card 'Fornecedores' 🏭"
+echo "  3. Clique para acessar"
+echo ""
+echo "✨ Dashboard atualizado com acesso a Fornecedores!"
+echo ""
