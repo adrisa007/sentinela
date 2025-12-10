@@ -1,15 +1,41 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@contexts/AuthContext'
+import {
+  Chart as ChartJS,
+  ArcElement,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LineElement,
+} from 'chart.js'
+import { Doughnut, Bar, Line } from 'react-chartjs-2'
+
+// Registrar componentes Chart.js
+ChartJS.register(
+  ArcElement,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+)
 
 /**
- * Dashboard Gestor - adrisa007/sentinela (ID: 1112237272)
+ * Dashboard Gestor com Gráficos Chart.js - adrisa007/sentinela (ID: 1112237272)
  * 
  * Dashboard completo para perfil GESTOR com:
- * - Visão geral de entidades
- * - Estatísticas de contratos
- * - Ações rápidas
- * - Notificações
+ * - Gráfico de % de execução (Doughnut)
+ * - Gráfico de contratos por status (Bar)
+ * - Evolução mensal (Line)
+ * - Estatísticas detalhadas
  */
 
 function DashboardGestor() {
@@ -22,6 +48,8 @@ function DashboardGestor() {
     totalContratos: 0,
     contratosAtivos: 0,
     alertas: 0,
+    execucaoOrcamentaria: 0,
+    execucaoFisica: 0,
   })
 
   useEffect(() => {
@@ -33,6 +61,8 @@ function DashboardGestor() {
         totalContratos: 127,
         contratosAtivos: 98,
         alertas: 5,
+        execucaoOrcamentaria: 73.5,
+        execucaoFisica: 68.2,
       })
       setLoading(false)
     }, 1000)
@@ -41,6 +71,206 @@ function DashboardGestor() {
   const handleLogout = () => {
     logout()
     navigate('/login')
+  }
+
+  // ==========================================
+  // GRÁFICO 1: % Execução Orçamentária (Doughnut)
+  // ==========================================
+  const executionData = {
+    labels: ['Executado', 'Disponível'],
+    datasets: [
+      {
+        label: '% Execução',
+        data: [stats.execucaoOrcamentaria, 100 - stats.execucaoOrcamentaria],
+        backgroundColor: [
+          'rgba(34, 197, 94, 0.8)', // Success green
+          'rgba(229, 231, 235, 0.8)', // Gray
+        ],
+        borderColor: [
+          'rgba(34, 197, 94, 1)',
+          'rgba(229, 231, 235, 1)',
+        ],
+        borderWidth: 2,
+      },
+    ],
+  }
+
+  const executionOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+      },
+      title: {
+        display: true,
+        text: '% Execução Orçamentária',
+        font: {
+          size: 16,
+          weight: 'bold',
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            return context.label + ': ' + context.parsed.toFixed(1) + '%'
+          }
+        }
+      }
+    },
+  }
+
+  // ==========================================
+  // GRÁFICO 2: % Execução Física (Doughnut)
+  // ==========================================
+  const physicalExecutionData = {
+    labels: ['Executado', 'Disponível'],
+    datasets: [
+      {
+        label: '% Execução',
+        data: [stats.execucaoFisica, 100 - stats.execucaoFisica],
+        backgroundColor: [
+          'rgba(99, 102, 241, 0.8)', // Primary blue
+          'rgba(229, 231, 235, 0.8)', // Gray
+        ],
+        borderColor: [
+          'rgba(99, 102, 241, 1)',
+          'rgba(229, 231, 235, 1)',
+        ],
+        borderWidth: 2,
+      },
+    ],
+  }
+
+  const physicalExecutionOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+      },
+      title: {
+        display: true,
+        text: '% Execução Física',
+        font: {
+          size: 16,
+          weight: 'bold',
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            return context.label + ': ' + context.parsed.toFixed(1) + '%'
+          }
+        }
+      }
+    },
+  }
+
+  // ==========================================
+  // GRÁFICO 3: Contratos por Status (Bar)
+  // ==========================================
+  const contractsData = {
+    labels: ['Ativos', 'Em Análise', 'Suspensos', 'Finalizados'],
+    datasets: [
+      {
+        label: 'Quantidade',
+        data: [98, 15, 7, 27],
+        backgroundColor: [
+          'rgba(34, 197, 94, 0.8)',
+          'rgba(251, 191, 36, 0.8)',
+          'rgba(239, 68, 68, 0.8)',
+          'rgba(156, 163, 175, 0.8)',
+        ],
+        borderColor: [
+          'rgba(34, 197, 94, 1)',
+          'rgba(251, 191, 36, 1)',
+          'rgba(239, 68, 68, 1)',
+          'rgba(156, 163, 175, 1)',
+        ],
+        borderWidth: 2,
+      },
+    ],
+  }
+
+  const contractsOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: true,
+        text: 'Contratos por Status',
+        font: {
+          size: 16,
+          weight: 'bold',
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 20,
+        },
+      },
+    },
+  }
+
+  // ==========================================
+  // GRÁFICO 4: Evolução Mensal (Line)
+  // ==========================================
+  const monthlyData = {
+    labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+    datasets: [
+      {
+        label: 'Execução Orçamentária',
+        data: [45, 52, 58, 64, 68, 73.5],
+        borderColor: 'rgba(34, 197, 94, 1)',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        tension: 0.4,
+        fill: true,
+      },
+      {
+        label: 'Execução Física',
+        data: [40, 48, 54, 60, 65, 68.2],
+        borderColor: 'rgba(99, 102, 241, 1)',
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        tension: 0.4,
+        fill: true,
+      },
+    ],
+  }
+
+  const monthlyOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+      },
+      title: {
+        display: true,
+        text: 'Evolução Mensal (%)',
+        font: {
+          size: 16,
+          weight: 'bold',
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 100,
+        ticks: {
+          callback: function(value) {
+            return value + '%'
+          }
+        },
+      },
+    },
   }
 
   if (loading) {
@@ -100,7 +330,7 @@ function DashboardGestor() {
             Olá, {user?.email?.split('@')[0] || 'Gestor'}! 👋
           </h2>
           <p className="text-gray-600">
-            Bem-vindo ao painel de controle. Aqui você pode visualizar e gerenciar entidades.
+            Acompanhe a execução e o desempenho dos contratos em tempo real.
           </p>
         </div>
 
@@ -124,24 +354,6 @@ function DashboardGestor() {
             </div>
           </div>
 
-          {/* Entidades Ativas */}
-          <div className="card card-body hover:shadow-xl transition-shadow cursor-pointer">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Entidades Ativas</p>
-                <p className="text-3xl font-bold text-success-600 mt-2">
-                  {stats.entidadesAtivas}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {((stats.entidadesAtivas / stats.totalEntidades) * 100).toFixed(0)}% do total
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">✅</span>
-              </div>
-            </div>
-          </div>
-
           {/* Total Contratos */}
           <div className="card card-body hover:shadow-xl transition-shadow cursor-pointer">
             <div className="flex items-center justify-between">
@@ -160,21 +372,86 @@ function DashboardGestor() {
             </div>
           </div>
 
-          {/* Alertas */}
+          {/* Execução Orçamentária */}
           <div className="card card-body hover:shadow-xl transition-shadow cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Alertas</p>
-                <p className="text-3xl font-bold text-warning-600 mt-2">
-                  {stats.alertas}
+                <p className="text-sm font-medium text-gray-600">Exec. Orçamentária</p>
+                <p className="text-3xl font-bold text-success-600 mt-2">
+                  {stats.execucaoOrcamentaria}%
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Requerem atenção
+                  Do orçamento previsto
                 </p>
               </div>
-              <div className="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">⚠️</span>
+              <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">💰</span>
               </div>
+            </div>
+          </div>
+
+          {/* Execução Física */}
+          <div className="card card-body hover:shadow-xl transition-shadow cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Exec. Física</p>
+                <p className="text-3xl font-bold text-primary-600 mt-2">
+                  {stats.execucaoFisica}%
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Da meta física
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                <span className="text-2xl">📊</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Gráfico 1: Execução Orçamentária */}
+          <div className="card card-body">
+            <div className="h-80">
+              <Doughnut data={executionData} options={executionOptions} />
+            </div>
+            <div className="mt-4 p-4 bg-success-50 rounded-lg">
+              <p className="text-sm font-medium text-success-800">
+                ✅ Execução dentro da meta prevista
+              </p>
+              <p className="text-xs text-success-600 mt-1">
+                Meta: 70% | Realizado: {stats.execucaoOrcamentaria}%
+              </p>
+            </div>
+          </div>
+
+          {/* Gráfico 2: Execução Física */}
+          <div className="card card-body">
+            <div className="h-80">
+              <Doughnut data={physicalExecutionData} options={physicalExecutionOptions} />
+            </div>
+            <div className="mt-4 p-4 bg-primary-50 rounded-lg">
+              <p className="text-sm font-medium text-primary-800">
+                📊 Execução física acompanhando cronograma
+              </p>
+              <p className="text-xs text-primary-600 mt-1">
+                Meta: 65% | Realizado: {stats.execucaoFisica}%
+              </p>
+            </div>
+          </div>
+
+          {/* Gráfico 3: Contratos por Status */}
+          <div className="card card-body">
+            <div className="h-80">
+              <Bar data={contractsData} options={contractsOptions} />
+            </div>
+          </div>
+
+          {/* Gráfico 4: Evolução Mensal */}
+          <div className="card card-body">
+            <div className="h-80">
+              <Line data={monthlyData} options={monthlyOptions} />
             </div>
           </div>
         </div>
@@ -183,7 +460,6 @@ function DashboardGestor() {
         <div className="mb-8">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Ações Rápidas</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Ver Entidades */}
             <Link
               to="/entidades"
               className="card card-body hover:shadow-xl transition-all hover:scale-105 cursor-pointer group"
@@ -194,12 +470,11 @@ function DashboardGestor() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900">Ver Entidades</h4>
-                  <p className="text-sm text-gray-600">Visualizar todas as entidades</p>
+                  <p className="text-sm text-gray-600">Visualizar todas</p>
                 </div>
               </div>
             </Link>
 
-            {/* Ver Contratos */}
             <Link
               to="/contratos"
               className="card card-body hover:shadow-xl transition-all hover:scale-105 cursor-pointer group"
@@ -215,7 +490,6 @@ function DashboardGestor() {
               </div>
             </Link>
 
-            {/* Relatórios */}
             <Link
               to="/relatorios"
               className="card card-body hover:shadow-xl transition-all hover:scale-105 cursor-pointer group"
@@ -232,75 +506,6 @@ function DashboardGestor() {
             </Link>
           </div>
         </div>
-
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Entidades Recentes */}
-          <div className="card">
-            <div className="card-body">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                📋 Entidades Recentes
-              </h3>
-              <div className="space-y-3">
-                {[
-                  { name: 'Prefeitura Municipal', status: 'ATIVA', cnpj: '12.345.678/0001-90' },
-                  { name: 'Câmara de Vereadores', status: 'ATIVA', cnpj: '98.765.432/0001-10' },
-                  { name: 'Secretaria de Saúde', status: 'EM_ANALISE', cnpj: '11.222.333/0001-44' },
-                ].map((entidade, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900">{entidade.name}</p>
-                      <p className="text-xs text-gray-500">{entidade.cnpj}</p>
-                    </div>
-                    <span className={`badge ${
-                      entidade.status === 'ATIVA' ? 'badge-success' : 'bg-warning-100 text-warning-800'
-                    }`}>
-                      {entidade.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Notificações */}
-          <div className="card">
-            <div className="card-body">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                🔔 Notificações
-              </h3>
-              <div className="space-y-3">
-                {[
-                  { type: 'warning', message: 'Contrato vencendo em 7 dias', time: '2h atrás' },
-                  { type: 'info', message: 'Nova entidade cadastrada', time: '5h atrás' },
-                  { type: 'success', message: 'Relatório mensal gerado', time: '1d atrás' },
-                ].map((notification, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-                  >
-                    <span className="text-xl">
-                      {notification.type === 'warning' && '⚠️'}
-                      {notification.type === 'info' && 'ℹ️'}
-                      {notification.type === 'success' && '✅'}
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {notification.time}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
       </main>
 
       {/* Footer */}
@@ -313,9 +518,6 @@ function DashboardGestor() {
             <div className="flex space-x-4 mt-4 md:mt-0">
               <a href="/docs" className="text-sm text-gray-600 hover:text-primary-600">
                 📚 Documentação
-              </a>
-              <a href="/suporte" className="text-sm text-gray-600 hover:text-primary-600">
-                💬 Suporte
               </a>
               <a href="https://github.com/adrisa007/sentinela" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-600 hover:text-primary-600">
                 🐙 GitHub
